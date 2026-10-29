@@ -186,15 +186,34 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   Widget _filterChip(String label, int value, {Color? color}) {
     final isSelected = _selectedFilter == value;
     final theme = Theme.of(context);
+    final activeColor = color ?? theme.colorScheme.primary;
+
     return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      selectedColor: (color ?? theme.colorScheme.primary).withValues(alpha: 0.18),
-      labelStyle: TextStyle(
-        fontSize: 12,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        color: isSelected ? (color ?? theme.colorScheme.primary) : null,
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: isSelected ? activeColor : Colors.black,
+        ),
       ),
+      selected: isSelected,
+      showCheckmark: isSelected,
+      checkmarkColor: activeColor,
+      backgroundColor: theme.colorScheme.surface,
+      selectedColor: activeColor.withValues(alpha: 0.15),
+      side: BorderSide(
+        color: isSelected
+            ? activeColor
+            : (color != null
+                ? color.withValues(alpha: 0.45)
+                : const Color(0xFFD1C4E9)),
+        width: isSelected ? 1.6 : 1.2,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       onSelected: (_) => setState(() => _selectedFilter = value),
     );
   }

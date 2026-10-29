@@ -84,29 +84,13 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      FilterChip(
-                        label: const Text('الكل'),
-                        selected: _selectedRole == null,
-                        onSelected: (_) => _onFilterRole(null),
-                      ),
+                      _buildRoleChip('الكل', null),
                       const SizedBox(width: 8),
-                      FilterChip(
-                        label: const Text('الطلاب'),
-                        selected: _selectedRole == 'Student',
-                        onSelected: (_) => _onFilterRole('Student'),
-                      ),
+                      _buildRoleChip('الطلاب', 'Student'),
                       const SizedBox(width: 8),
-                      FilterChip(
-                        label: const Text('المعلمين'),
-                        selected: _selectedRole == 'Teacher',
-                        onSelected: (_) => _onFilterRole('Teacher'),
-                      ),
+                      _buildRoleChip('المعلمين', 'Teacher'),
                       const SizedBox(width: 8),
-                      FilterChip(
-                        label: const Text('المشرفين'),
-                        selected: _selectedRole == 'Admin',
-                        onSelected: (_) => _onFilterRole('Admin'),
-                      ),
+                      _buildRoleChip('المشرفين', 'Admin'),
                     ],
                   ),
                 ),
@@ -225,6 +209,36 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => _UserDetailSheet(userId: userId),
+    );
+  }
+
+  Widget _buildRoleChip(String label, String? role) {
+    final isSelected = _selectedRole == role;
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: isSelected ? Colors.white : Colors.black,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: primary,
+      checkmarkColor: Colors.white,
+      backgroundColor: theme.colorScheme.surface,
+      side: BorderSide(
+        color: isSelected ? primary : const Color(0xFFD1C4E9),
+        width: isSelected ? 1.6 : 1.2,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      onSelected: (_) => _onFilterRole(role),
     );
   }
 }
