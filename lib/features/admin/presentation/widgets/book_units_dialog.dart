@@ -45,9 +45,11 @@ class _BookUnitsDialogState extends ConsumerState<BookUnitsDialog> {
       final repo = ref.read(adminRepositoryProvider);
       final res = await repo.getBookUnits(widget.book.id);
       if (mounted) {
+        final list = res.data ?? [];
+        list.sort((a, b) => a.order.compareTo(b.order));
         setState(() {
           _isLoading = false;
-          _units = res.data ?? [];
+          _units = list;
         });
       }
     } catch (e) {
@@ -64,11 +66,14 @@ class _BookUnitsDialogState extends ConsumerState<BookUnitsDialog> {
     final titleCtrl = TextEditingController(text: unitToEdit?.title ?? '');
     final descCtrl = TextEditingController(text: unitToEdit?.description ?? '');
     final ytCtrl = TextEditingController(text: unitToEdit?.youtubeUrl ?? '');
-    final orderCtrl = TextEditingController(
-      text: unitToEdit != null
-          ? unitToEdit.order.toString()
-          : (_units.isEmpty ? '1' : (_units.map((u) => u.order).reduce((a, b) => a > b ? a : b) + 1).toString()),
-    );
+    final nextOrder = unitToEdit != null
+        ? unitToEdit.order
+        : (_units.isEmpty
+            ? 1
+            : (_units
+                    .map((u) => u.order)
+                    .fold<int>(0, (max, o) => o > max ? o : max) +
+                1));
     bool isFreeSample = unitToEdit?.isFreeSample ?? false;
     final formKey = GlobalKey<FormState>();
 
@@ -76,7 +81,8 @@ class _BookUnitsDialogState extends ConsumerState<BookUnitsDialog> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             unitToEdit == null ? 'إضافة فصل / درس جديد' : 'تعديل بيانات الفصل',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -96,34 +102,98 @@ class _BookUnitsDialogState extends ConsumerState<BookUnitsDialog> {
                       prefixIcon: Icon(Icons.title),
                       border: OutlineInputBorder(),
                     ),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'الرجاء إدخال عنوان الفصل' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'الرجاء إدخال عنوان الفصل'
+                        : null,
                   ),
                   const SizedBox(height: 12),
-                  TextFormField(
-                    controller: orderCtrl,
-                    textDirection: TextDirection.ltr,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'رقم الترتيب *',
-                      prefixIcon: Icon(Icons.format_list_numbered),
-                      border: OutlineInputBorder(),
+
+                  // ── Fixed Order (Unchangeable on mobile screen) ───────
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(ctx)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Theme.of(ctx)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.6),
+                      ),
                     ),
-                    validator: (v) {
-                      final n = int.tryParse(v ?? '');
-                      if (n == null || n < 1) return 'أدخل رقماً صحيحاً (1 أو أكثر)';
-                      return null;
-                    },
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.lock_outline_rounded,
+                          size: 20,
+                          color: Theme.of(ctx).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'ترتيب الفصل في الكتاب (ثابت)',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(ctx)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.6),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'الفصل رقم #$nextOrder',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Theme.of(ctx)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'ثابت تلقائياً',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(ctx).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
+
                   TextFormField(
                     controller: ytCtrl,
                     textDirection: TextDirection.ltr,
                     keyboardType: TextInputType.url,
                     decoration: const InputDecoration(
                       labelText: 'رابط شرح يوتيوب (اختياري)',
-                      hintText: 'https://youtube.com/watch?v=... أو https://youtu.be/...',
-                      prefixIcon: Icon(Icons.play_circle_fill, color: Colors.red),
+                      hintText:
+                          'https://youtube.com/watch?v=... أو https://youtu.be/...',
+                      prefixIcon:
+                          Icon(Icons.play_circle_fill, color: Colors.red),
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -176,9 +246,10 @@ class _BookUnitsDialogState extends ConsumerState<BookUnitsDialog> {
         final repo = ref.read(adminRepositoryProvider);
         final req = BookUnitRequest(
           title: titleCtrl.text.trim(),
-          order: int.parse(orderCtrl.text.trim()),
+          order: nextOrder,
           youtubeUrl: ytCtrl.text.trim().isNotEmpty ? ytCtrl.text.trim() : null,
-          description: descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : null,
+          description:
+              descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : null,
           isFreeSample: isFreeSample,
         );
 
