@@ -108,12 +108,24 @@ class CreateBookRequest {
   final int validityDays;
   final int gradeLevelId;
   final int categoryId;
+  final String semester; // 'FirstTerm' or 'SecondTerm'
+  final String? academicYear;
+  final double? originalPrice;
+  final int? pageCount;
+  final bool isOfficialCurriculum;
+  final bool isTaxInclusive;
 
   const CreateBookRequest({
     required this.title,
     this.isbn,
     this.description,
     required this.price,
+    this.originalPrice,
+    this.academicYear,
+    this.semester = 'FirstTerm',
+    this.pageCount,
+    this.isOfficialCurriculum = true,
+    this.isTaxInclusive = true,
     this.validityDays = 365,
     required this.gradeLevelId,
     required this.categoryId,
@@ -125,6 +137,14 @@ class CreateBookRequest {
         if (description != null && description!.isNotEmpty)
           'description': description,
         'price': price,
+        if (originalPrice != null && originalPrice! > 0)
+          'originalPrice': originalPrice,
+        if (academicYear != null && academicYear!.isNotEmpty)
+          'academicYear': academicYear,
+        'semester': semester,
+        if (pageCount != null && pageCount! > 0) 'pageCount': pageCount,
+        'isOfficialCurriculum': isOfficialCurriculum,
+        'isTaxInclusive': isTaxInclusive,
         'validityDays': validityDays,
         'gradeLevelId': gradeLevelId,
         'categoryId': categoryId,
@@ -136,6 +156,12 @@ class UpdateBookRequest {
   final String? isbn;
   final String? description;
   final double? price;
+  final double? originalPrice;
+  final String? academicYear;
+  final String? semester;
+  final int? pageCount;
+  final bool? isOfficialCurriculum;
+  final bool? isTaxInclusive;
   final int? validityDays;
   final int? gradeLevelId;
   final int? categoryId;
@@ -146,6 +172,12 @@ class UpdateBookRequest {
     this.isbn,
     this.description,
     this.price,
+    this.originalPrice,
+    this.academicYear,
+    this.semester,
+    this.pageCount,
+    this.isOfficialCurriculum,
+    this.isTaxInclusive,
     this.validityDays,
     this.gradeLevelId,
     this.categoryId,
@@ -158,6 +190,14 @@ class UpdateBookRequest {
     if (isbn != null) map['isbn'] = isbn;
     if (description != null) map['description'] = description;
     if (price != null) map['price'] = price;
+    if (originalPrice != null) map['originalPrice'] = originalPrice;
+    if (academicYear != null) map['academicYear'] = academicYear;
+    if (semester != null) map['semester'] = semester;
+    if (pageCount != null) map['pageCount'] = pageCount;
+    if (isOfficialCurriculum != null) {
+      map['isOfficialCurriculum'] = isOfficialCurriculum;
+    }
+    if (isTaxInclusive != null) map['isTaxInclusive'] = isTaxInclusive;
     if (validityDays != null) map['validityDays'] = validityDays;
     if (gradeLevelId != null) map['gradeLevelId'] = gradeLevelId;
     if (categoryId != null) map['categoryId'] = categoryId;

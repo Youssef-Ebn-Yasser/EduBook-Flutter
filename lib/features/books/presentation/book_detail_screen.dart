@@ -169,10 +169,28 @@ class BookDetailScreen extends ConsumerWidget {
                         _MetaChip(
                             icon: Icons.category,
                             label: '${l.category}: ${book.categoryName}'),
+                        if (book.semesterName != null)
+                          _MetaChip(
+                              icon: Icons.date_range_rounded,
+                              label: book.semesterName!,
+                              color: Colors.deepPurple),
+                        if (book.academicYear != null &&
+                            book.academicYear!.isNotEmpty)
+                          _MetaChip(
+                              icon: Icons.calendar_month,
+                              label: 'العام: ${book.academicYear}'),
+                        if (book.pageCount > 0)
+                          _MetaChip(
+                              icon: Icons.auto_stories,
+                              label: '${book.pageCount} صفحة'),
+                        if (book.isOfficialCurriculum)
+                          const _MetaChip(
+                              icon: Icons.verified_rounded,
+                              label: 'منهج رسمي معتمد',
+                              color: Colors.teal),
                         _MetaChip(
                             icon: Icons.timer,
-                            label:
-                                '${book.validityDays} ${l.days}'),
+                            label: '${book.validityDays} ${l.days}'),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -465,17 +483,44 @@ class BookDetailScreen extends ConsumerWidget {
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Text(
-                    '${book.price.toStringAsFixed(3)} ر.ع.',
-                    maxLines: 1,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  children: [
+                    Text(
+                      '${book.price.toStringAsFixed(3)} ر.ع.',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                    if (book.hasDiscount) ...[
+                      Text(
+                        '${book.originalPrice!.toStringAsFixed(3)} ر.ع.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'خصم ${book.discountPercentage}%',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -507,27 +552,29 @@ class BookDetailScreen extends ConsumerWidget {
 class _MetaChip extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _MetaChip({required this.icon, required this.label});
+  final Color? color;
+  const _MetaChip({required this.icon, required this.label, this.color});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = color ?? theme.colorScheme.primary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+        color: c.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: theme.colorScheme.primary),
-          const SizedBox(width: 4),
+          Icon(icon, size: 14, color: c),
+          const SizedBox(width: 6),
           Text(label,
               style: TextStyle(
                   fontSize: 12,
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w500)),
+                  color: c,
+                  fontWeight: FontWeight.w600)),
         ],
       ),
     );

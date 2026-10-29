@@ -64,6 +64,14 @@ class BookListItem {
   final String title;
   final String? isbn;
   final double price;
+  final double? originalPrice;
+  final String? academicYear;
+  final String? semester;
+  final int pageCount;
+  final double rating;
+  final int reviewsCount;
+  final bool isTaxInclusive;
+  final bool isOfficialCurriculum;
   final String? coverUrl;
   final int validityDays;
   final String gradeLevelName;
@@ -77,6 +85,14 @@ class BookListItem {
     required this.title,
     this.isbn,
     required this.price,
+    this.originalPrice,
+    this.academicYear,
+    this.semester,
+    this.pageCount = 0,
+    this.rating = 5.0,
+    this.reviewsCount = 0,
+    this.isTaxInclusive = true,
+    this.isOfficialCurriculum = true,
     this.coverUrl,
     required this.validityDays,
     required this.gradeLevelName,
@@ -86,11 +102,34 @@ class BookListItem {
     required this.createdAt,
   });
 
+  String? get semesterName {
+    if (semester == null || semester!.isEmpty) return null;
+    final s = semester!.toLowerCase();
+    if (s == 'firstterm' || s == '1') return 'الفصل الدراسي الأول';
+    if (s == 'secondterm' || s == '2') return 'الفصل الدراسي الثاني';
+    return semester;
+  }
+
+  bool get hasDiscount => originalPrice != null && originalPrice! > price;
+
+  int get discountPercentage {
+    if (!hasDiscount || originalPrice == null || originalPrice! <= 0) return 0;
+    return (((originalPrice! - price) / originalPrice!) * 100).round();
+  }
+
   factory BookListItem.fromJson(Map<String, dynamic> json) => BookListItem(
         id: (json['id'] as num?)?.toInt() ?? 0,
         title: json['title'] as String? ?? '',
         isbn: json['isbn'] as String?,
         price: (json['price'] as num?)?.toDouble() ?? 0.0,
+        originalPrice: (json['originalPrice'] as num?)?.toDouble(),
+        academicYear: json['academicYear'] as String?,
+        semester: json['semester']?.toString(),
+        pageCount: (json['pageCount'] as num?)?.toInt() ?? 0,
+        rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
+        reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 0,
+        isTaxInclusive: json['isTaxInclusive'] as bool? ?? true,
+        isOfficialCurriculum: json['isOfficialCurriculum'] as bool? ?? true,
         coverUrl: json['coverUrl'] as String?,
         validityDays: (json['validityDays'] as num?)?.toInt() ?? 365,
         gradeLevelName: json['gradeLevelName'] as String? ?? '',
@@ -216,6 +255,14 @@ class BookDetail extends BookListItem {
     required super.title,
     super.isbn,
     required super.price,
+    super.originalPrice,
+    super.academicYear,
+    super.semester,
+    super.pageCount = 0,
+    super.rating = 5.0,
+    super.reviewsCount = 0,
+    super.isTaxInclusive = true,
+    super.isOfficialCurriculum = true,
     super.coverUrl,
     required super.validityDays,
     required super.gradeLevelName,
@@ -235,6 +282,14 @@ class BookDetail extends BookListItem {
         title: json['title'] as String? ?? '',
         isbn: json['isbn'] as String?,
         price: (json['price'] as num?)?.toDouble() ?? 0.0,
+        originalPrice: (json['originalPrice'] as num?)?.toDouble(),
+        academicYear: json['academicYear'] as String?,
+        semester: json['semester']?.toString(),
+        pageCount: (json['pageCount'] as num?)?.toInt() ?? 0,
+        rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
+        reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 0,
+        isTaxInclusive: json['isTaxInclusive'] as bool? ?? true,
+        isOfficialCurriculum: json['isOfficialCurriculum'] as bool? ?? true,
         coverUrl: json['coverUrl'] as String?,
         validityDays: (json['validityDays'] as num?)?.toInt() ?? 365,
         gradeLevelName: json['gradeLevelName'] as String? ?? '',

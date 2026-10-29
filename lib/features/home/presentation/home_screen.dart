@@ -545,6 +545,24 @@ class _BookListItem extends StatelessWidget {
                                       fontWeight: FontWeight.w600),
                                 ),
                               ),
+                            if (book.semesterName != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: Colors.purple.shade200),
+                                ),
+                                child: Text(
+                                  book.semesterName!,
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.purple.shade700,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ),
                             if (book.categoryName.isNotEmpty)
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -592,21 +610,63 @@ class _BookListItem extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('السعر',
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          color: colors.textHint)),
+                                  Row(
+                                    children: [
+                                      Text('السعر',
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              color: colors.textHint)),
+                                      if (book.hasDiscount) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.shade50,
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                            border: Border.all(
+                                                color: Colors.red.shade200),
+                                          ),
+                                          child: Text(
+                                            'خصم ${book.discountPercentage}%',
+                                            style: TextStyle(
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.red.shade800,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                   FittedBox(
                                     fit: BoxFit.scaleDown,
                                     alignment: AlignmentDirectional.centerStart,
-                                    child: Text(
-                                      '${book.price.toStringAsFixed(3)} ر.ع.',
-                                      maxLines: 1,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                        color: colors.primary,
-                                      ),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          '${book.price.toStringAsFixed(3)} ر.ع.',
+                                          maxLines: 1,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: colors.primary,
+                                          ),
+                                        ),
+                                        if (book.hasDiscount) ...[
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            '${book.originalPrice!.toStringAsFixed(3)} ر.ع.',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              decoration:
+                                                  TextDecoration.lineThrough,
+                                              color: colors.textHint,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                 ],

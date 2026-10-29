@@ -29,12 +29,18 @@ class _BookFormDialogState extends ConsumerState<BookFormDialog> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _isbnCtrl;
   late final TextEditingController _priceCtrl;
+  late final TextEditingController _originalPriceCtrl;
+  late final TextEditingController _academicYearCtrl;
+  late final TextEditingController _pageCountCtrl;
   late final TextEditingController _descCtrl;
   late final TextEditingController _validityCtrl;
   late final TextEditingController _versionCtrl;
 
   int? _selectedGradeId;
   int? _selectedCatId;
+  late String _selectedSemester;
+  late bool _isOfficialCurriculum;
+  late bool _isTaxInclusive;
   late bool _isActive;
 
   // File pickers
@@ -52,10 +58,22 @@ class _BookFormDialogState extends ConsumerState<BookFormDialog> {
     _isbnCtrl = TextEditingController(text: b?.isbn ?? '');
     _priceCtrl =
         TextEditingController(text: b != null ? b.price.toString() : '5.000');
+    _originalPriceCtrl = TextEditingController(
+        text: (b?.originalPrice != null && b!.originalPrice! > 0)
+            ? b.originalPrice.toString()
+            : '');
+    _academicYearCtrl = TextEditingController(text: b?.academicYear ?? '');
+    _pageCountCtrl = TextEditingController(
+        text: (b?.pageCount != null && b!.pageCount > 0)
+            ? b.pageCount.toString()
+            : '');
     _descCtrl = TextEditingController();
     _validityCtrl =
         TextEditingController(text: (b?.validityDays ?? 365).toString());
     _versionCtrl = TextEditingController(text: '1.0');
+    _selectedSemester = b?.semester ?? 'FirstTerm';
+    _isOfficialCurriculum = b?.isOfficialCurriculum ?? true;
+    _isTaxInclusive = b?.isTaxInclusive ?? true;
     _isActive = b?.isActive ?? true;
   }
 
@@ -64,6 +82,9 @@ class _BookFormDialogState extends ConsumerState<BookFormDialog> {
     _titleCtrl.dispose();
     _isbnCtrl.dispose();
     _priceCtrl.dispose();
+    _originalPriceCtrl.dispose();
+    _academicYearCtrl.dispose();
+    _pageCountCtrl.dispose();
     _descCtrl.dispose();
     _validityCtrl.dispose();
     _versionCtrl.dispose();
@@ -111,6 +132,13 @@ class _BookFormDialogState extends ConsumerState<BookFormDialog> {
     }
 
     final price = double.tryParse(_priceCtrl.text.trim()) ?? 0.0;
+    final originalPrice = _originalPriceCtrl.text.trim().isNotEmpty
+        ? double.tryParse(_originalPriceCtrl.text.trim())
+        : null;
+    final academicYear = _academicYearCtrl.text.trim().isNotEmpty
+        ? _academicYearCtrl.text.trim()
+        : null;
+    final pageCount = int.tryParse(_pageCountCtrl.text.trim()) ?? 0;
     final validity = int.tryParse(_validityCtrl.text.trim()) ?? 365;
     final version = _versionCtrl.text.trim().isEmpty
         ? '1.0'
@@ -130,9 +158,15 @@ class _BookFormDialogState extends ConsumerState<BookFormDialog> {
               ? null
               : _descCtrl.text.trim(),
           price: price,
+          originalPrice: originalPrice,
           validityDays: validity,
           gradeLevelId: _selectedGradeId!,
           categoryId: _selectedCatId!,
+          semester: _selectedSemester,
+          academicYear: academicYear,
+          pageCount: pageCount,
+          isOfficialCurriculum: _isOfficialCurriculum,
+          isTaxInclusive: _isTaxInclusive,
         );
 
         // Call parent callback so the notifier creates the book and gets its ID
@@ -177,10 +211,16 @@ class _BookFormDialogState extends ConsumerState<BookFormDialog> {
               ? null
               : _descCtrl.text.trim(),
           price: price,
+          originalPrice: originalPrice,
           validityDays: validity,
           gradeLevelId: _selectedGradeId!,
           categoryId: _selectedCatId!,
           isActive: _isActive,
+          semester: _selectedSemester,
+          academicYear: academicYear,
+          pageCount: pageCount,
+          isOfficialCurriculum: _isOfficialCurriculum,
+          isTaxInclusive: _isTaxInclusive,
         );
         widget.onUpdate?.call(widget.book!.id, req);
 
@@ -344,24 +384,86 @@ class _BookFormDialogState extends ConsumerState<BookFormDialog> {
                         ],
                         const SizedBox(height: 14),
 
-                        // Price & validity (responsive wrap)
+                        // Semester & Academic Year (responsive wrap)
+                        if (!isNarrow)
+                          Row(
+                            children: [
+                              Expanded(child: _semesterDropdown()),
+                              const SizedBox(width: 12),
+                              Expanded(child: _academicYearField()),
+                            ],
+                          )
+                        else ...[
+                          _semesterDropdown(),
+                          const SizedBox(height: 12),
+                          _academicYearField(),
+                        ],
+                        const SizedBox(height: 14),
+
+                        // Price & Original Price (responsive wrap)
                         if (!isNarrow)
                           Row(
                             children: [
                               Expanded(child: _priceField()),
                               const SizedBox(width: 12),
-                              Expanded(child: _validityField()),
+                              Expanded(child: _originalPriceField()),
                             ],
                           )
                         else ...[
                           _priceField(),
                           const SizedBox(height: 12),
+                          _originalPriceField(),
+                        ],
+                        const SizedBox(height: 14),
+
+                        // Validity & Page Count (responsive wrap)
+                        if (!isNarrow)
+                          Row(
+                            children: [
+                              Expanded(child: _validityField()),
+                              const SizedBox(width: 12),
+                              Expanded(child: _pageCountField()),
+                            ],
+                          )
+                        else ...[
                           _validityField(),
+                          const SizedBox(height: 12),
+                          _pageCountField(),
                         ],
                         const SizedBox(height: 14),
 
                         // Description
                         _descField(),
+                        const SizedBox(height: 14),
+
+                        // Curriculum & Tax switches
+                        Card(
+                          margin: EdgeInsets.zero,
+                          child: SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 4),
+                            title: const Text('منهج دراسي رسمي معتمد'),
+                            subtitle: const Text(
+                                'تحديد ما إذا كان الكتاب يتبع المنهاج الوزاري المعتمد'),
+                            value: _isOfficialCurriculum,
+                            onChanged: (val) =>
+                                setState(() => _isOfficialCurriculum = val),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Card(
+                          margin: EdgeInsets.zero,
+                          child: SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 4),
+                            title: const Text('السعر شامل الضريبة'),
+                            subtitle: const Text(
+                                'تأكيد أن السعر المدخل شامل ضريبة القيمة المضافة'),
+                            value: _isTaxInclusive,
+                            onChanged: (val) =>
+                                setState(() => _isTaxInclusive = val),
+                          ),
+                        ),
                         const SizedBox(height: 16),
 
                         // ── PDF File Upload ─────────────────────────────
@@ -672,6 +774,68 @@ class _BookFormDialogState extends ConsumerState<BookFormDialog> {
             .toList(),
         onChanged: (val) => setState(() => _selectedGradeId = val),
         validator: (v) => v == null ? 'اختر الصف' : null,
+      );
+
+  Widget _semesterDropdown() => DropdownButtonFormField<String>(
+        initialValue: _selectedSemester,
+        decoration: const InputDecoration(
+          labelText: 'الفصل الدراسي *',
+          prefixIcon: Icon(Icons.date_range_outlined),
+          isDense: true,
+        ),
+        isExpanded: true,
+        items: const [
+          DropdownMenuItem(
+            value: 'FirstTerm',
+            child: Text('الفصل الدراسي الأول', textDirection: TextDirection.rtl),
+          ),
+          DropdownMenuItem(
+            value: 'SecondTerm',
+            child: Text('الفصل الدراسي الثاني', textDirection: TextDirection.rtl),
+          ),
+        ],
+        onChanged: (val) {
+          if (val != null) setState(() => _selectedSemester = val);
+        },
+      );
+
+  Widget _academicYearField() => TextFormField(
+        controller: _academicYearCtrl,
+        textDirection: TextDirection.ltr,
+        decoration: const InputDecoration(
+          labelText: 'العام الدراسي (اختياري)',
+          hintText: '2024/2025',
+          prefixIcon: Icon(Icons.calendar_today_outlined),
+          isDense: true,
+        ),
+      );
+
+  Widget _originalPriceField() => TextFormField(
+        controller: _originalPriceCtrl,
+        textDirection: TextDirection.ltr,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: const InputDecoration(
+          labelText: 'السعر قبل الخصم (ر.ع)',
+          hintText: 'اختياري - مثلاً 7.000',
+          prefixIcon: Icon(Icons.money_off_outlined),
+          isDense: true,
+        ),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[\d\.]')),
+        ],
+      );
+
+  Widget _pageCountField() => TextFormField(
+        controller: _pageCountCtrl,
+        textDirection: TextDirection.ltr,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(
+          labelText: 'عدد الصفحات (اختياري)',
+          hintText: 'مثال: 150',
+          prefixIcon: Icon(Icons.auto_stories_outlined),
+          isDense: true,
+        ),
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       );
 
   Widget _priceField() => TextFormField(
