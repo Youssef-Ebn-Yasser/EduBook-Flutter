@@ -9,12 +9,12 @@ import '../providers/auth_provider.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String email;
-  final String otpCode;
+  final String resetToken;
 
   const ResetPasswordScreen({
     super.key,
     required this.email,
-    required this.otpCode,
+    required this.resetToken,
   });
 
   @override
@@ -48,7 +48,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
     final request = ResetPasswordRequest(
       email: widget.email,
-      otpCode: widget.otpCode,
+      resetToken: widget.resetToken,
       newPassword: _newPassCtrl.text,
       confirmNewPassword: _confirmPassCtrl.text,
     );

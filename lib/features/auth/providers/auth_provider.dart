@@ -121,13 +121,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   String _extractError(DioException e) {
     try {
-      final data = e.response?.data as Map<String, dynamic>?;
-      if (data != null) {
-        final errors = data['errors'] as List<dynamic>?;
-        if (errors != null && errors.isNotEmpty) {
+      final data = e.response?.data;
+      if (data is Map<String, dynamic>) {
+        final errors = data['errors'];
+        if (errors is List && errors.isNotEmpty) {
           return errors.first.toString();
+        } else if (errors is Map && errors.isNotEmpty) {
+          final firstVal = errors.values.first;
+          if (firstVal is List && firstVal.isNotEmpty) {
+            return firstVal.first.toString();
+          }
+          return firstVal.toString();
         }
-        return data['message'] as String? ?? 'حدث خطأ غير متوقع';
+        final message = data['message'] ?? data['title'];
+        if (message != null && message.toString().isNotEmpty) {
+          return message.toString();
+        }
+      } else if (data is String && data.isNotEmpty) {
+        return data;
       }
     } catch (_) {}
     return 'تعذّر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.';
@@ -207,7 +218,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> verifyPasswordResetOtp(String email, String otp) async {
+  Future<String?> verifyPasswordResetOtp(String email, String otp) async {
     state = state.copyWith(status: AuthStatus.loading, clearMessage: true);
     try {
       final result = await _repo.verifyPasswordResetOtp(
@@ -217,10 +228,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         status: result.success ? AuthStatus.success : AuthStatus.error,
         message: result.message,
       );
-      return result.success;
+      if (result.success && result.data != null && result.data!.resetToken.isNotEmpty) {
+        return result.data!.resetToken;
+      }
+      return null;
     } on DioException catch (e) {
       state = state.copyWith(status: AuthStatus.error, message: _extractError(e));
-      return false;
+      return null;
     }
   }
 

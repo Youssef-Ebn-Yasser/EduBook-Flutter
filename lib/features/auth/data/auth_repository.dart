@@ -53,26 +53,17 @@ class AuthRepository {
     );
   }
 
-  Future<ApiResponse<Object?>> verifyPasswordResetOtp(VerifyPasswordResetOtpRequest request) async {
-    try {
-      final response = await _dio.post(
-        '$_basePath/verify-password-reset-otp',
-        data: request.toJson(),
-      );
-      return ApiResponse<Object?>.fromJson(
-        response.data as Map<String, dynamic>,
-        (_) => null,
-      );
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        // Fallback when standalone verification endpoint is not yet available on remote server
-        return const ApiResponse(
-          success: true,
-          message: 'OTP format verified',
-        );
-      }
-      rethrow;
-    }
+  Future<ApiResponse<VerifyResetOtpResponse>> verifyPasswordResetOtp(VerifyPasswordResetOtpRequest request) async {
+    final response = await _dio.post(
+      '$_basePath/verify-reset-otp',
+      data: request.toJson(),
+    );
+    return ApiResponse<VerifyResetOtpResponse>.fromJson(
+      response.data as Map<String, dynamic>,
+      (d) => d != null
+          ? VerifyResetOtpResponse.fromJson(d as Map<String, dynamic>)
+          : const VerifyResetOtpResponse(email: '', resetToken: ''),
+    );
   }
 
   Future<ApiResponse<Object?>> resetPassword(ResetPasswordRequest request) async {

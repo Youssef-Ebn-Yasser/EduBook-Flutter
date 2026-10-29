@@ -97,10 +97,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final extra = state.extra;
           final map = extra is Map ? extra : const <dynamic, dynamic>{};
           final email = (map['email'] ?? state.uri.queryParameters['email'] ?? '').toString();
-          final otpCode = (map['otpCode'] ?? state.uri.queryParameters['otpCode'] ?? '').toString();
+          final resetToken = (map['resetToken'] ?? map['token'] ?? state.uri.queryParameters['resetToken'] ?? '').toString();
           return ResetPasswordScreen(
             email: email,
-            otpCode: otpCode,
+            resetToken: resetToken,
           );
         },
       ),

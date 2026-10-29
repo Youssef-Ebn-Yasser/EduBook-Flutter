@@ -86,15 +86,15 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
       }
     } else {
       // passwordReset: first check the OTP is right with backend
-      final success = await ref
+      final resetToken = await ref
           .read(authProvider.notifier)
           .verifyPasswordResetOtp(widget.email, otp);
       if (!mounted) return;
-      if (success) {
-        // Second: move to enter password and confirm password only if OTP is right
+      if (resetToken != null && resetToken.isNotEmpty) {
+        // Second: move to enter password and confirm password with resetToken
         context.push('/reset-password', extra: <String, dynamic>{
           'email': widget.email,
-          'otpCode': otp,
+          'resetToken': resetToken,
         });
       }
     }

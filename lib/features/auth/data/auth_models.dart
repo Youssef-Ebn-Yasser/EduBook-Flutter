@@ -56,22 +56,38 @@ class VerifyPasswordResetOtpRequest {
   Map<String, dynamic> toJson() => {'email': email, 'otpCode': otpCode};
 }
 
+class VerifyResetOtpResponse {
+  final String email;
+  final String resetToken;
+
+  const VerifyResetOtpResponse({
+    required this.email,
+    required this.resetToken,
+  });
+
+  factory VerifyResetOtpResponse.fromJson(Map<String, dynamic> json) =>
+      VerifyResetOtpResponse(
+        email: json['email'] as String? ?? '',
+        resetToken: json['resetToken'] as String? ?? '',
+      );
+}
+
 class ResetPasswordRequest {
   final String email;
-  final String otpCode;
+  final String resetToken;
   final String newPassword;
   final String confirmNewPassword;
 
   const ResetPasswordRequest({
     required this.email,
-    required this.otpCode,
+    required this.resetToken,
     required this.newPassword,
     required this.confirmNewPassword,
   });
 
   Map<String, dynamic> toJson() => {
         'email': email,
-        'otpCode': otpCode,
+        'resetToken': resetToken,
         'newPassword': newPassword,
         'confirmNewPassword': confirmNewPassword,
       };
