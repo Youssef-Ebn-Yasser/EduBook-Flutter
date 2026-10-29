@@ -7,6 +7,7 @@ import '../../../app/theme/theme_provider.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../data/reader_models.dart';
 import '../providers/reader_provider.dart';
+import 'widgets/book_drawing_layer.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
@@ -26,6 +27,117 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   final TransformationController _transformController = TransformationController();
   bool _showControls = true;
   String? _authToken;
+
+  // ── Transient Live Painting / Drawing State (In-Memory per page) ──────────
+  bool _isDrawingMode = false;
+  DrawingTool _activeTool = DrawingTool.pen;
+  Color _activeColor = const Color(0xFFFFD600); // Vibrant yellow default
+  double _activeStrokeWidth = 4.5;
+  DrawingStroke? _currentActiveStroke;
+  final Map<int, List<DrawingStroke>> _pageDrawings = {};
+
+  void _onPanStart(DragStartDetails details, int currentPage) {
+    if (!_isDrawingMode || _activeTool == DrawingTool.panZoom) return;
+
+    if (_activeTool == DrawingTool.eraser) {
+      _eraseAt(details.localPosition, currentPage);
+      return;
+    }
+
+    setState(() {
+      _currentActiveStroke = DrawingStroke(
+        points: [details.localPosition],
+        color: _activeColor,
+        strokeWidth: _activeStrokeWidth,
+        tool: _activeTool,
+      );
+    });
+  }
+
+  void _onPanUpdate(DragUpdateDetails details, int currentPage) {
+    if (!_isDrawingMode || _activeTool == DrawingTool.panZoom) return;
+
+    if (_activeTool == DrawingTool.eraser) {
+      _eraseAt(details.localPosition, currentPage);
+      return;
+    }
+
+    if (_currentActiveStroke != null) {
+      final last = _currentActiveStroke!.points.last;
+      if ((details.localPosition - last).distanceSquared > 1.0) {
+        setState(() {
+          _currentActiveStroke!.points.add(details.localPosition);
+        });
+      }
+    }
+  }
+
+  void _onPanEnd(DragEndDetails details, int currentPage) {
+    if (!_isDrawingMode || _activeTool == DrawingTool.panZoom) return;
+
+    if (_currentActiveStroke != null) {
+      setState(() {
+        final strokes = _pageDrawings.putIfAbsent(currentPage, () => []);
+        strokes.add(_currentActiveStroke!);
+        _currentActiveStroke = null;
+      });
+    }
+  }
+
+  void _onTapUp(TapUpDetails details, int currentPage) {
+    if (!_isDrawingMode || _activeTool == DrawingTool.panZoom) return;
+
+    if (_activeTool == DrawingTool.eraser) {
+      _eraseAt(details.localPosition, currentPage);
+      return;
+    }
+
+    setState(() {
+      final strokes = _pageDrawings.putIfAbsent(currentPage, () => []);
+      strokes.add(DrawingStroke(
+        points: [details.localPosition],
+        color: _activeColor,
+        strokeWidth: _activeStrokeWidth,
+        tool: _activeTool,
+      ));
+    });
+  }
+
+  void _eraseAt(Offset touch, int currentPage) {
+    final strokes = _pageDrawings[currentPage];
+    if (strokes == null || strokes.isEmpty) return;
+
+    const radius = 22.0;
+    const radiusSq = radius * radius;
+
+    setState(() {
+      strokes.removeWhere((stroke) {
+        for (final p in stroke.points) {
+          if ((p - touch).distanceSquared <= radiusSq) {
+            return true;
+          }
+        }
+        return false;
+      });
+    });
+  }
+
+  void _undoCurrentPage(int currentPage) {
+    final strokes = _pageDrawings[currentPage];
+    if (strokes != null && strokes.isNotEmpty) {
+      setState(() {
+        strokes.removeLast();
+      });
+    }
+  }
+
+  void _clearCurrentPage(int currentPage) {
+    if (_pageDrawings[currentPage]?.isNotEmpty ?? false) {
+      setState(() {
+        _pageDrawings[currentPage]?.clear();
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -138,93 +250,126 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       backgroundColor: const Color(0xFF1E1E1E),
       body: Stack(
         children: [
-          // ── Main Page View with Zoom & Pan ───────────────────────────────
+          // ── Main Page View with Zoom & Pan & Paint ───────────────────────
           GestureDetector(
-            onTap: _toggleControls,
+            onTap: _isDrawingMode ? null : _toggleControls,
             child: Center(
               child: InteractiveViewer(
                 transformationController: _transformController,
                 minScale: 1.0,
                 maxScale: 4.0,
-                child: Container(
-                  color: Colors.white,
-                  child: Image.network(
-                    pageUrl,
-                    headers: headers.isNotEmpty ? headers : null,
-                    fit: BoxFit.contain,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      final total = loadingProgress.expectedTotalBytes;
-                      final loaded = loadingProgress.cumulativeBytesLoaded;
-                      final val = (total != null && total > 0) ? loaded / total : null;
-                      return SizedBox(
-                        height: 400,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: val,
-                            color: AppColors.primary,
+                panEnabled: !_isDrawingMode || _activeTool == DrawingTool.panZoom,
+                scaleEnabled: !_isDrawingMode || _activeTool == DrawingTool.panZoom,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      color: Colors.white,
+                      child: Image.network(
+                        pageUrl,
+                        headers: headers.isNotEmpty ? headers : null,
+                        fit: BoxFit.contain,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          final total = loadingProgress.expectedTotalBytes;
+                          final loaded = loadingProgress.cumulativeBytesLoaded;
+                          final val = (total != null && total > 0) ? loaded / total : null;
+                          return SizedBox(
+                            height: 400,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value: val,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return SizedBox(
+                            height: 300,
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.broken_image_rounded, size: 48, color: Colors.grey),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'تعذر تحميل الصفحة',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      _resetZoom();
+                                      setState(() {});
+                                    },
+                                    child: const Text('إعادة المحاولة'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // ── Live Drawing Layer (In-memory strokes on book image) ──
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: CustomPaint(
+                          painter: BookDrawingPainter(
+                            strokes: _pageDrawings[readerState.currentPage] ?? const [],
+                            activeStroke: _currentActiveStroke,
                           ),
                         ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return SizedBox(
-                        height: 300,
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.broken_image_rounded, size: 48, color: Colors.grey),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'تعذر تحميل الصفحة',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  _resetZoom();
-                                  setState(() {});
-                                },
-                                child: const Text('إعادة المحاولة'),
-                              ),
-                            ],
-                          ),
+                      ),
+                    ),
+
+                    // ── Paint Touch Capture Overlay ──
+                    if (_isDrawingMode && _activeTool != DrawingTool.panZoom)
+                      Positioned.fill(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onPanStart: (d) => _onPanStart(d, readerState.currentPage),
+                          onPanUpdate: (d) => _onPanUpdate(d, readerState.currentPage),
+                          onPanEnd: (d) => _onPanEnd(d, readerState.currentPage),
+                          onTapUp: (d) => _onTapUp(d, readerState.currentPage),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                  ],
                 ),
               ),
             ),
           ),
 
-          // ── Page Flip Hit Areas ──────────────────────────────────────────
-          Positioned(
-            left: 0,
-            top: 100,
-            bottom: 100,
-            width: 50,
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () {
-                _resetZoom();
-                notifier.nextPage();
-              },
+          // ── Page Flip Hit Areas (active only when not in drawing mode) ───
+          if (!_isDrawingMode) ...[
+            Positioned(
+              left: 0,
+              top: 100,
+              bottom: 100,
+              width: 50,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  _resetZoom();
+                  notifier.nextPage();
+                },
+              ),
             ),
-          ),
-          Positioned(
-            right: 0,
-            top: 100,
-            bottom: 100,
-            width: 50,
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () {
-                _resetZoom();
-                notifier.prevPage();
-              },
+            Positioned(
+              right: 0,
+              top: 100,
+              bottom: 100,
+              width: 50,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  _resetZoom();
+                  notifier.prevPage();
+                },
+              ),
             ),
-          ),
+          ],
 
           // ── Top Navigation Bar ───────────────────────────────────────────
           AnimatedPositioned(
@@ -292,6 +437,35 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       ],
                     ),
                   ),
+
+                  // ── Paint / Drawing Mode Toggle ──
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: _isDrawingMode
+                          ? BoxDecoration(
+                              color: Colors.amberAccent.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.amberAccent, width: 1.5),
+                            )
+                          : null,
+                      child: Icon(
+                        _isDrawingMode ? Icons.brush_rounded : Icons.edit_rounded,
+                        color: _isDrawingMode ? Colors.amberAccent : Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    tooltip: _isDrawingMode ? 'إغلاق وضع الرسم' : 'الكتابة والرسم على الصفحة',
+                    onPressed: () {
+                      setState(() {
+                        _isDrawingMode = !_isDrawingMode;
+                        if (_isDrawingMode) {
+                          _showControls = true;
+                        }
+                      });
+                    },
+                  ),
+
                   if (session.units.isNotEmpty)
                     IconButton(
                       icon: const Icon(Icons.menu_book_rounded, color: Colors.white),
@@ -312,6 +486,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               ),
             ),
           ),
+
+          // ── Floating Drawing Toolbar ─────────────────────────────────────
+          if (_isDrawingMode)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 62,
+              left: 12,
+              right: 12,
+              child: Center(
+                child: BookDrawingToolbar(
+                  activeTool: _activeTool,
+                  activeColor: _activeColor,
+                  activeStrokeWidth: _activeStrokeWidth,
+                  canUndo: _pageDrawings[readerState.currentPage]?.isNotEmpty ?? false,
+                  hasStrokes: _pageDrawings[readerState.currentPage]?.isNotEmpty ?? false,
+                  onToolChanged: (tool) => setState(() => _activeTool = tool),
+                  onColorChanged: (color) => setState(() => _activeColor = color),
+                  onStrokeWidthChanged: (w) => setState(() => _activeStrokeWidth = w),
+                  onUndo: () => _undoCurrentPage(readerState.currentPage),
+                  onClear: () => _clearCurrentPage(readerState.currentPage),
+                  onClose: () => setState(() => _isDrawingMode = false),
+                ),
+              ),
+            ),
 
           // ── Bottom Navigation & Controls ─────────────────────────────────
           AnimatedPositioned(
