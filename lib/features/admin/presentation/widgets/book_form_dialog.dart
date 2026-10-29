@@ -71,7 +71,15 @@ class _BookFormDialogState extends ConsumerState<BookFormDialog> {
     _validityCtrl =
         TextEditingController(text: (b?.validityDays ?? 365).toString());
     _versionCtrl = TextEditingController(text: '1.0');
-    _selectedSemester = b?.semester ?? 'FirstTerm';
+    final initialSem = b?.semester;
+    if (initialSem != null &&
+        (initialSem == 'SecondTerm' ||
+            initialSem.contains('ثان') ||
+            initialSem == '2')) {
+      _selectedSemester = 'الفصل الدراسي الثاني';
+    } else {
+      _selectedSemester = 'الفصل الدراسي الأول';
+    }
     _isOfficialCurriculum = b?.isOfficialCurriculum ?? true;
     _isTaxInclusive = b?.isTaxInclusive ?? true;
     _isActive = b?.isActive ?? true;
@@ -786,11 +794,11 @@ class _BookFormDialogState extends ConsumerState<BookFormDialog> {
         isExpanded: true,
         items: const [
           DropdownMenuItem(
-            value: 'FirstTerm',
+            value: 'الفصل الدراسي الأول',
             child: Text('الفصل الدراسي الأول', textDirection: TextDirection.rtl),
           ),
           DropdownMenuItem(
-            value: 'SecondTerm',
+            value: 'الفصل الدراسي الثاني',
             child: Text('الفصل الدراسي الثاني', textDirection: TextDirection.rtl),
           ),
         ],

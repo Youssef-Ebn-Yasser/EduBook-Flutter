@@ -141,7 +141,7 @@ class CreateBookRequest {
           'originalPrice': originalPrice,
         if (academicYear != null && academicYear!.isNotEmpty)
           'academicYear': academicYear,
-        'semester': semester,
+        'semester': _normalizeSemester(semester),
         if (pageCount != null && pageCount! > 0) 'pageCount': pageCount,
         'isOfficialCurriculum': isOfficialCurriculum,
         'isTaxInclusive': isTaxInclusive,
@@ -149,6 +149,18 @@ class CreateBookRequest {
         'gradeLevelId': gradeLevelId,
         'categoryId': categoryId,
       };
+}
+
+String? _normalizeSemester(String? val) {
+  if (val == null || val.trim().isEmpty) return null;
+  final s = val.trim().toLowerCase();
+  if (s == 'firstterm' || s == '1' || s.contains('أول') || s.contains('اول')) {
+    return 'FirstTerm';
+  }
+  if (s == 'secondterm' || s == '2' || s.contains('ثان')) {
+    return 'SecondTerm';
+  }
+  return val;
 }
 
 class UpdateBookRequest {
@@ -192,7 +204,7 @@ class UpdateBookRequest {
     if (price != null) map['price'] = price;
     if (originalPrice != null) map['originalPrice'] = originalPrice;
     if (academicYear != null) map['academicYear'] = academicYear;
-    if (semester != null) map['semester'] = semester;
+    if (semester != null) map['semester'] = _normalizeSemester(semester);
     if (pageCount != null) map['pageCount'] = pageCount;
     if (isOfficialCurriculum != null) {
       map['isOfficialCurriculum'] = isOfficialCurriculum;

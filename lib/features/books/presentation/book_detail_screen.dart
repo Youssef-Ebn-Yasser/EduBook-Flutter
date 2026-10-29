@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../app/config/env_config.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../orders/presentation/widgets/purchase_book_sheet.dart';
+import '../../reader/data/reader_repository.dart';
 import '../data/book_models.dart';
 import '../providers/books_provider.dart';
-import '../../orders/presentation/widgets/purchase_book_sheet.dart';
 
 class BookDetailScreen extends ConsumerWidget {
   final int bookId;
@@ -211,25 +213,25 @@ class BookDetailScreen extends ConsumerWidget {
                     ],
 
                     // ── Chapters / Units ──────────────────────────────────
-                    if (book.units.isNotEmpty) ...[
-                      Row(
-                        children: [
-                          Text(
-                            l.units,
-                            style: theme.textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const Spacer(),
+                    Row(
+                      children: [
+                        Text(
+                          'فصول ومحتويات الكتاب',
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
+                        if (book.units.isNotEmpty)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                                horizontal: 10, vertical: 3),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primary
-                                  .withValues(alpha: 0.1),
+                                  .withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              '${book.units.length} فصول',
+                              '${book.units.length} فصول / وحدات',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -237,19 +239,20 @@ class BookDetailScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (book.units.isNotEmpty)
                       ...book.units.map((unit) => Container(
                             margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.3),
+                                  .withValues(alpha: 0.35),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: theme.colorScheme.outlineVariant
-                                    .withValues(alpha: 0.35),
+                                    .withValues(alpha: 0.4),
                               ),
                             ),
                             child: Column(
@@ -318,18 +321,38 @@ class BookDetailScreen extends ConsumerWidget {
                                   ),
                                 ],
                                 if (unit.hasYoutube || unit.hasPdfFile) ...[
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 12),
                                   Padding(
                                     padding: const EdgeInsets.only(right: 38),
                                     child: Wrap(
-                                      spacing: 8,
-                                      runSpacing: 6,
+                                      spacing: 10,
+                                      runSpacing: 8,
                                       children: [
                                         if (unit.hasYoutube)
-                                          InkWell(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            onTap: () async {
+                                          FilledButton.icon(
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: Colors.red.shade700,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 12, vertical: 8),
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            icon: const Icon(
+                                              Icons.play_circle_fill_rounded,
+                                              size: 16,
+                                            ),
+                                            label: const Text(
+                                              'مشاهدة الفيديو على يوتيوب',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            onPressed: () async {
                                               final uri = Uri.tryParse(
                                                   unit.youtubeUrl!.trim());
                                               if (uri != null &&
@@ -337,85 +360,50 @@ class BookDetailScreen extends ConsumerWidget {
                                                 await launchUrl(uri,
                                                     mode: LaunchMode
                                                         .externalApplication);
+                                              } else {
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                          'تعذر فتح رابط اليوتيوب'),
+                                                    ),
+                                                  );
+                                                }
                                               }
                                             },
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 6),
-                                              decoration: BoxDecoration(
-                                                color: Colors.red
-                                                    .withValues(alpha: 0.08),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                                border: Border.all(
-                                                  color: Colors.red
-                                                      .withValues(alpha: 0.25),
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(
-                                                    Icons.play_circle_fill_rounded,
-                                                    color: Colors.red,
-                                                    size: 16,
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Text(
-                                                    'شرح يوتيوب للدرس',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color:
-                                                          Colors.red.shade700,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
                                           ),
                                         if (unit.hasPdfFile)
-                                          Container(
-                                            padding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 6),
-                                            decoration: BoxDecoration(
-                                              color: theme.colorScheme.primary
-                                                  .withValues(alpha: 0.08),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              border: Border.all(
-                                                color: theme
-                                                    .colorScheme.primary
-                                                    .withValues(alpha: 0.2),
+                                          OutlinedButton.icon(
+                                            style: OutlinedButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 8),
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              side: BorderSide(
+                                                color:
+                                                    theme.colorScheme.primary,
                                               ),
                                             ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.picture_as_pdf_rounded,
-                                                  color:
-                                                      theme.colorScheme.primary,
-                                                  size: 15,
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  '${unit.pdfFileName ?? "ملف الدرس"}${unit.fileSizeFormatted.isNotEmpty ? " (${unit.fileSizeFormatted})" : ""}',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight:
-                                                        FontWeight.w500,
-                                                    color: theme
-                                                        .colorScheme.primary,
-                                                  ),
-                                                ),
-                                              ],
+                                            icon: const Icon(
+                                              Icons.download_rounded,
+                                              size: 16,
                                             ),
+                                            label: Text(
+                                              'تحميل ملف الدرس (PDF)${unit.fileSizeFormatted.isNotEmpty ? " • ${unit.fileSizeFormatted}" : ""}',
+                                              style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            onPressed: () =>
+                                                _downloadOrOpenUnitPdf(
+                                                    context, ref, book, unit),
                                           ),
                                       ],
                                     ),
@@ -423,9 +411,54 @@ class BookDetailScreen extends ConsumerWidget {
                                 ],
                               ],
                             ),
-                          )),
-                      const SizedBox(height: 16),
-                    ],
+                          ))
+                    else
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant
+                                .withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.collections_bookmark_outlined,
+                                color: theme.colorScheme.primary
+                                    .withValues(alpha: 0.6),
+                                size: 24),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'محتويات وفصول الكتاب',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'سيتم إدراج فهرس الفصول والدروس قريباً من قبل المعلم.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 16),
 
                     // ── Active file info ──────────────────────────────────
                     if (book.activeFile != null) ...[
@@ -545,6 +578,77 @@ class BookDetailScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _downloadOrOpenUnitPdf(
+    BuildContext context,
+    WidgetRef ref,
+    BookDetail book,
+    BookUnit unit,
+  ) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('جاري تحضير ملف الدرس...'),
+          ],
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    try {
+      final readerRepo = ref.read(readerRepositoryProvider);
+      String? token;
+      try {
+        final session = await readerRepo.getSession(book.id);
+        token = session.data?.readToken;
+      } catch (_) {
+        try {
+          final sampleSession = await readerRepo.getSampleSession(book.id);
+          token = sampleSession.data?.readToken;
+        } catch (_) {}
+      }
+
+      String downloadUrl;
+      if (token != null && token.isNotEmpty) {
+        downloadUrl =
+            '${EnvConfig.apiBaseUrl}/api/Reader/${book.id}/units/${unit.id}/stream?token=${Uri.encodeComponent(token)}';
+      } else {
+        downloadUrl =
+            '${EnvConfig.apiBaseUrl}/api/Reader/${book.id}/units/${unit.id}/stream';
+      }
+
+      final uri = Uri.parse(downloadUrl);
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر تحميل الملف، يرجى التأكد من اتصالك بالإنترنت'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء تحميل الملف: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 
