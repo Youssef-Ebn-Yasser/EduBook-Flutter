@@ -624,11 +624,13 @@ class _PurchaseBookSheetState extends ConsumerState<PurchaseBookSheet> {
         // Optional Notes
         TextField(
           controller: _notesCtrl,
+          textDirection: TextDirection.rtl,
           enabled: !_isSubmitting,
           maxLines: 2,
           decoration: InputDecoration(
             labelText: 'ملاحظات إضافية (اختياري)',
-            hintText: 'أي تفاصيل تساعد في التحقق من الإيصال...',
+            hintText: 'أي تفاصيل تساعد في التحقق من الإيصال باللغة العربية...',
+            hintTextDirection: TextDirection.rtl,
             prefixIcon: const Icon(Icons.edit_note_outlined),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

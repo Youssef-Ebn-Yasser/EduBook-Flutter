@@ -77,10 +77,11 @@ class _RejectOrderDialogState extends State<RejectOrderDialog> {
 
               TextFormField(
                 controller: _reasonCtrl,
+                textDirection: TextDirection.rtl,
                 maxLines: 3,
                 decoration: const InputDecoration(
                   labelText: 'سبب الرفض *',
-                  hintText: 'اكتب سبب الرفض هنا بالتفصيل...',
+                  hintText: 'اكتب سبب الرفض هنا بالتفصيل باللغة العربية...',
                   border: OutlineInputBorder(),
                 ),
                 validator: (v) {

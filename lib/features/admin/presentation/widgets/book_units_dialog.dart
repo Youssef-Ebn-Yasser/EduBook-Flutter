@@ -89,8 +89,10 @@ class _BookUnitsDialogState extends ConsumerState<BookUnitsDialog> {
                 children: [
                   TextFormField(
                     controller: titleCtrl,
+                    textDirection: TextDirection.rtl,
                     decoration: const InputDecoration(
                       labelText: 'عنوان الفصل / الدرس *',
+                      hintText: 'مثال: الوحدة الأولى: مقدمة في الجبر',
                       prefixIcon: Icon(Icons.title),
                       border: OutlineInputBorder(),
                     ),
@@ -100,6 +102,7 @@ class _BookUnitsDialogState extends ConsumerState<BookUnitsDialog> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: orderCtrl,
+                    textDirection: TextDirection.ltr,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'رقم الترتيب *',
@@ -115,6 +118,7 @@ class _BookUnitsDialogState extends ConsumerState<BookUnitsDialog> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: ytCtrl,
+                    textDirection: TextDirection.ltr,
                     keyboardType: TextInputType.url,
                     decoration: const InputDecoration(
                       labelText: 'رابط شرح يوتيوب (اختياري)',
@@ -126,9 +130,11 @@ class _BookUnitsDialogState extends ConsumerState<BookUnitsDialog> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: descCtrl,
+                    textDirection: TextDirection.rtl,
                     maxLines: 2,
                     decoration: const InputDecoration(
                       labelText: 'وصف أو ملخص الفصل (اختياري)',
+                      hintText: 'أدخل ملخصاً أو أهداف الفصل باللغة العربية...',
                       prefixIcon: Icon(Icons.description_outlined),
                       border: OutlineInputBorder(),
                     ),

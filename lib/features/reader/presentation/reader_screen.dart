@@ -833,9 +833,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           controller: textController,
           autofocus: true,
           maxLines: 4,
+          textDirection: TextDirection.rtl,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
-            hintText: 'اكتب ملاحظتك هنا...',
+            hintText: 'اكتب ملاحظتك هنا باللغة العربية...',
+            hintTextDirection: TextDirection.rtl,
             hintStyle: const TextStyle(color: Colors.white38),
             filled: true,
             fillColor: const Color(0xFF1E1E1E),

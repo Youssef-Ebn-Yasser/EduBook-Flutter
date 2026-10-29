@@ -96,8 +96,11 @@ class ProfileScreen extends ConsumerWidget {
               children: [
                 TextField(
                   controller: nameController,
+                  textDirection: TextDirection.rtl,
                   decoration: InputDecoration(
                     labelText: 'الاسم الكامل',
+                    hintText: 'أدخل اسمك بالكامل باللغة العربية...',
+                    hintTextDirection: TextDirection.rtl,
                     prefixIcon: const Icon(Icons.person_outline),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12)),
