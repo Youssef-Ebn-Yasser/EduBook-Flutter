@@ -16,15 +16,43 @@ class BankDetails {
     required this.transferInstructions,
   });
 
+  static bool hasNonsense(String? text) {
+    if (text == null || text.trim().isEmpty) return false;
+    // Detect mojibake / corrupted UTF-8 representation (Ø, Ù, Â, Ã, â, replacement chars, O" sequences)
+    final pattern = RegExp(r'[ØÙÂÃâ\uFFFD\u0080-\u009F]|\bO["\\]');
+    return pattern.hasMatch(text);
+  }
+
+  static String cleanBankName(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return 'بنك مسقط (Bank Muscat)';
+    if (hasNonsense(raw)) {
+      // If bank name contains nonsense/mojibake characters like "Bank Muscat (Ø¨Ù†Ùƒ Ù…Ø³Ù‚Ø·)",
+      // fallback to clean official title
+      return 'بنك مسقط (Bank Muscat)';
+    }
+    return raw.trim();
+  }
+
+  static String cleanInstructions(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '';
+    // If it contains nonsense words or corrupted characters, delete it completely
+    if (hasNonsense(raw)) {
+      return '';
+    }
+    return raw.trim();
+  }
+
   factory BankDetails.fromJson(Map<String, dynamic> json) {
+    final rawBankName = json['bankName'] as String? ?? json['BankName'] as String?;
+    final rawInstructions = json['transferInstructions'] as String? ??
+        json['TransferInstructions'] as String?;
+
     return BankDetails(
-      bankName: json['bankName'] as String? ?? json['BankName'] as String? ?? 'بنك مسقط',
+      bankName: cleanBankName(rawBankName),
       accountName: json['accountName'] as String? ?? json['AccountName'] as String? ?? '',
       accountNumber: json['accountNumber'] as String? ?? json['AccountNumber'] as String? ?? '',
       phoneNumber: json['phoneNumber'] as String? ?? json['PhoneNumber'] as String? ?? '',
-      transferInstructions: json['transferInstructions'] as String? ??
-          json['TransferInstructions'] as String? ??
-          '',
+      transferInstructions: cleanInstructions(rawInstructions),
     );
   }
 }

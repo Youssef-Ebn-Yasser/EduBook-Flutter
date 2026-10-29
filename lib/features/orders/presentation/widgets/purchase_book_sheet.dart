@@ -388,7 +388,7 @@ class _PurchaseBookSheetState extends ConsumerState<PurchaseBookSheet> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        bank.bankName.isNotEmpty ? bank.bankName : 'بنك مسقط (Bank Muscat)',
+                        BankDetails.cleanBankName(bank.bankName),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -434,8 +434,9 @@ class _PurchaseBookSheetState extends ConsumerState<PurchaseBookSheet> {
                   const SizedBox(height: 10),
                 ],
 
-                // Instructions Box
-                if (bank.transferInstructions.isNotEmpty) ...[
+                // Instructions Box (omitted if empty or containing nonsense words)
+                if (bank.transferInstructions.isNotEmpty &&
+                    !BankDetails.hasNonsense(bank.transferInstructions)) ...[
                   const SizedBox(height: 4),
                   Container(
                     width: double.infinity,
