@@ -153,6 +153,7 @@ class BookUnit {
   final String? pdfStreamUrl;
   final int order;
   final bool isFreeSample;
+  final Map<String, dynamic> rawJson;
 
   const BookUnit({
     required this.id,
@@ -166,16 +167,47 @@ class BookUnit {
     this.pdfStreamUrl,
     required this.order,
     this.isFreeSample = false,
+    this.rawJson = const {},
   });
 
   bool get hasYoutube => youtubeUrl != null && youtubeUrl!.trim().isNotEmpty;
 
+  bool get hasDescription => description != null && description!.trim().isNotEmpty;
+
+  String? get youtubeVideoId {
+    if (!hasYoutube) return null;
+    final url = youtubeUrl!.trim();
+    final regExp = RegExp(
+      r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(url);
+    return match?.group(1);
+  }
+
+  String? get youtubeThumbnailUrl {
+    final videoId = youtubeVideoId;
+    if (videoId == null) return null;
+    return 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+  }
+
   String get fileSizeFormatted {
     if (pdfFileSizeBytes == null || pdfFileSizeBytes! <= 0) return '';
     final mb = pdfFileSizeBytes! / (1024 * 1024);
-    if (mb >= 1.0) return '${mb.toStringAsFixed(1)} ميجابايت';
+    if (mb >= 1.0) return '${mb.toStringAsFixed(2)} ميجابايت';
     final kb = pdfFileSizeBytes! / 1024;
-    return '${kb.toStringAsFixed(0)} كيلوبايت';
+    return '${kb.toStringAsFixed(1)} كيلوبايت';
+  }
+
+  String get formattedUploadDate {
+    if (pdfUploadedAt == null) return '';
+    final d = pdfUploadedAt!.toLocal();
+    final year = d.year.toString();
+    final month = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    final hour = d.hour.toString().padLeft(2, '0');
+    final minute = d.minute.toString().padLeft(2, '0');
+    return '$year/$month/$day $hour:$minute';
   }
 
   factory BookUnit.fromJson(Map<String, dynamic> json) => BookUnit(
@@ -192,6 +224,7 @@ class BookUnit {
         pdfStreamUrl: json['pdfStreamUrl'] as String?,
         order: (json['order'] as num?)?.toInt() ?? 0,
         isFreeSample: json['isFreeSample'] as bool? ?? false,
+        rawJson: Map<String, dynamic>.from(json),
       );
 }
 

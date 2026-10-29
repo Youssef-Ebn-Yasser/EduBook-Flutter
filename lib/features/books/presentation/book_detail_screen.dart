@@ -8,6 +8,7 @@ import '../../orders/presentation/widgets/purchase_book_sheet.dart';
 import '../../reader/data/reader_repository.dart';
 import '../data/book_models.dart';
 import '../providers/books_provider.dart';
+import 'widgets/unit_details_modal.dart';
 
 class BookDetailScreen extends ConsumerWidget {
   final int bookId;
@@ -244,12 +245,12 @@ class BookDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                     if (book.units.isNotEmpty)
                       ...book.units.map((unit) => Container(
-                            margin: const EdgeInsets.only(bottom: 12),
+                            margin: const EdgeInsets.only(bottom: 14),
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceContainerHighest
                                   .withValues(alpha: 0.35),
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: theme.colorScheme.outlineVariant
                                     .withValues(alpha: 0.4),
@@ -258,6 +259,7 @@ class BookDetailScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Top row: Order, Title, Badges, Info Button
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
@@ -275,18 +277,32 @@ class BookDetailScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
-                                      child: Text(
-                                        unit.title,
-                                        style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            unit.title,
+                                            style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'معرف الدرس: #${unit.id}',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: theme.colorScheme.onSurface
+                                                  .withValues(alpha: 0.5),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                     if (unit.isFreeSample) ...[
-                                      const SizedBox(width: 6),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 7, vertical: 2),
+                                            horizontal: 7, vertical: 3),
                                         decoration: BoxDecoration(
                                           color: Colors.green
                                               .withValues(alpha: 0.12),
@@ -302,113 +318,244 @@ class BookDetailScreen extends ConsumerWidget {
                                           ),
                                         ),
                                       ),
+                                      const SizedBox(width: 4),
+                                    ] else ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 7, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.indigo
+                                              .withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: const Text(
+                                          'محتوى للمشتركين',
+                                          style: TextStyle(
+                                            color: Colors.indigo,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
                                     ],
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.info_outline_rounded,
+                                        size: 20,
+                                      ),
+                                      color: theme.colorScheme.primary,
+                                      tooltip: 'عرض تفاصيل ومحتوى الدرس الكامل',
+                                      onPressed: () => UnitDetailsModal.show(
+                                        context,
+                                        unit: unit,
+                                        bookId: book.id,
+                                        onDownloadPdf: unit.hasPdfFile
+                                            ? () => _downloadOrOpenUnitPdf(
+                                                context, ref, book, unit)
+                                            : null,
+                                      ),
+                                    ),
                                   ],
                                 ),
-                                if (unit.description != null &&
-                                    unit.description!.trim().isNotEmpty) ...[
-                                  const SizedBox(height: 6),
+
+                                // Description
+                                if (unit.hasDescription) ...[
+                                  const SizedBox(height: 8),
                                   Padding(
                                     padding: const EdgeInsets.only(right: 38),
                                     child: Text(
                                       unit.description!,
                                       style: TextStyle(
                                         fontSize: 12,
+                                        height: 1.5,
                                         color: theme.colorScheme.onSurface
-                                            .withValues(alpha: 0.7),
+                                            .withValues(alpha: 0.75),
                                       ),
                                     ),
                                   ),
                                 ],
-                                if (unit.hasYoutube || unit.hasPdfFile) ...[
-                                  const SizedBox(height: 12),
+
+                                // Attached PDF Card
+                                if (unit.hasPdfFile) ...[
+                                  const SizedBox(height: 10),
                                   Padding(
                                     padding: const EdgeInsets.only(right: 38),
-                                    child: Wrap(
-                                      spacing: 10,
-                                      runSpacing: 8,
-                                      children: [
-                                        if (unit.hasYoutube)
-                                          FilledButton.icon(
-                                            style: FilledButton.styleFrom(
-                                              backgroundColor: Colors.red.shade700,
-                                              foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 12, vertical: 8),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                            ),
-                                            icon: const Icon(
-                                              Icons.play_circle_fill_rounded,
-                                              size: 16,
-                                            ),
-                                            label: const Text(
-                                              'مشاهدة الفيديو على يوتيوب',
-                                              style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            onPressed: () async {
-                                              final uri = Uri.tryParse(
-                                                  unit.youtubeUrl!.trim());
-                                              if (uri != null &&
-                                                  await canLaunchUrl(uri)) {
-                                                await launchUrl(uri,
-                                                    mode: LaunchMode
-                                                        .externalApplication);
-                                              } else {
-                                                if (context.mounted) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text(
-                                                          'تعذر فتح رابط اليوتيوب'),
-                                                    ),
-                                                  );
-                                                }
-                                              }
-                                            },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.deepOrange
+                                            .withValues(alpha: 0.05),
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: Colors.deepOrange
+                                              .withValues(alpha: 0.2),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.picture_as_pdf_rounded,
+                                            color: Colors.deepOrange,
+                                            size: 20,
                                           ),
-                                        if (unit.hasPdfFile)
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  unit.pdfFileName ??
+                                                      'ملف الدرس (PDF)',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight:
+                                                        FontWeight.bold,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                Text(
+                                                  '${unit.fileSizeFormatted.isNotEmpty ? unit.fileSizeFormatted : ""}${unit.formattedUploadDate.isNotEmpty ? " • رفع بتاريخ ${unit.formattedUploadDate}" : ""}',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: theme
+                                                        .colorScheme.onSurface
+                                                        .withValues(alpha: 0.6),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
                                           OutlinedButton.icon(
                                             style: OutlinedButton.styleFrom(
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                      horizontal: 12,
-                                                      vertical: 8),
+                                                      horizontal: 10,
+                                                      vertical: 6),
                                               visualDensity:
                                                   VisualDensity.compact,
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
                                                     BorderRadius.circular(8),
                                               ),
-                                              side: BorderSide(
-                                                color:
-                                                    theme.colorScheme.primary,
+                                              side: const BorderSide(
+                                                color: Colors.deepOrange,
                                               ),
                                             ),
                                             icon: const Icon(
                                               Icons.download_rounded,
-                                              size: 16,
+                                              size: 15,
+                                              color: Colors.deepOrange,
                                             ),
-                                            label: Text(
-                                              'تحميل ملف الدرس (PDF)${unit.fileSizeFormatted.isNotEmpty ? " • ${unit.fileSizeFormatted}" : ""}',
-                                              style: const TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold),
+                                            label: const Text(
+                                              'تحميل',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.deepOrange,
+                                              ),
                                             ),
                                             onPressed: () =>
                                                 _downloadOrOpenUnitPdf(
                                                     context, ref, book, unit),
                                           ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
+
+                                // Action Buttons Row (YouTube & Details)
+                                const SizedBox(height: 10),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 38),
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      if (unit.hasYoutube)
+                                        FilledButton.icon(
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor:
+                                                Colors.red.shade700,
+                                            foregroundColor: Colors.white,
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 8),
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          icon: const Icon(
+                                            Icons.play_circle_fill_rounded,
+                                            size: 16,
+                                          ),
+                                          label: const Text(
+                                            'مشاهدة الفيديو على يوتيوب',
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          onPressed: () async {
+                                            final uri = Uri.tryParse(
+                                                unit.youtubeUrl!.trim());
+                                            if (uri != null &&
+                                                await canLaunchUrl(uri)) {
+                                              await launchUrl(uri,
+                                                  mode: LaunchMode
+                                                      .externalApplication);
+                                            } else {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                        'تعذر فتح رابط اليوتيوب'),
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                        ),
+                                      TextButton.icon(
+                                        style: TextButton.styleFrom(
+                                          padding:
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 10, vertical: 6),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.visibility_outlined,
+                                          size: 15,
+                                        ),
+                                        label: const Text(
+                                          'عرض كافة بيانات الوحدة',
+                                          style: TextStyle(fontSize: 11),
+                                        ),
+                                        onPressed: () =>
+                                            UnitDetailsModal.show(
+                                          context,
+                                          unit: unit,
+                                          bookId: book.id,
+                                          onDownloadPdf: unit.hasPdfFile
+                                              ? () => _downloadOrOpenUnitPdf(
+                                                  context, ref, book, unit)
+                                              : null,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ))

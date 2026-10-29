@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../app/config/env_config.dart';
 import '../../../app/theme/theme_provider.dart';
 import '../../../core/storage/secure_storage.dart';
+import '../../books/data/book_models.dart';
+import '../../books/presentation/widgets/unit_details_modal.dart';
 import '../data/reader_models.dart';
 import '../providers/reader_provider.dart';
 import 'widgets/book_drawing_layer.dart';
@@ -636,6 +639,44 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
+  Future<void> _downloadOrStreamUnitPdfInReader(
+    BuildContext context,
+    BookUnit unit,
+    ReaderSession session,
+  ) async {
+    try {
+      final token = session.readToken;
+      String downloadUrl;
+      if (token.isNotEmpty) {
+        downloadUrl =
+            '${EnvConfig.apiBaseUrl}/api/Reader/${session.bookId}/units/${unit.id}/stream?token=${Uri.encodeComponent(token)}';
+      } else {
+        downloadUrl =
+            '${EnvConfig.apiBaseUrl}/api/Reader/${session.bookId}/units/${unit.id}/stream';
+      }
+      final uri = Uri.parse(downloadUrl);
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر تحميل ملف الدرس، يرجى المحاولة لاحقاً'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء تحميل الملف: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showUnitsSheet(
     BuildContext context,
     ReaderSession session,
@@ -643,73 +684,323 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   ) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF242424),
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E1E1E),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'فهرس وحدات وفصول الكتاب',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.82,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 12),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const Divider(color: Colors.white12, height: 1),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: session.units.length,
-                  itemBuilder: (ctx, i) {
-                    final unit = session.units[i];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.2),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.collections_bookmark_rounded,
+                          color: AppColors.primary, size: 20),
+                      const SizedBox(width: 8),
+                      const Expanded(
                         child: Text(
-                          '${unit.order}',
-                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                          'فهرس وحدات وفصول الكتاب',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      title: Text(
-                        unit.title,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${session.units.length} فصول',
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      subtitle: unit.description != null
-                          ? Text(
-                              unit.description!,
-                              style: const TextStyle(color: Colors.white60, fontSize: 12),
-                            )
-                          : null,
-                      trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white30, size: 14),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _resetZoom();
-                        // If unit has order, we jump to unit approximate position or order
-                        if (unit.order > 0) {
-                          notifier.jumpToPage(unit.order);
-                        }
-                      },
-                    );
-                  },
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                const Divider(color: Colors.white12, height: 1),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    itemCount: session.units.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (ctx, i) {
+                      final unit = session.units[i];
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF282828),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 13,
+                                  backgroundColor: AppColors.primary
+                                      .withValues(alpha: 0.2),
+                                  child: Text(
+                                    '${unit.order}',
+                                    style: const TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        unit.title,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'معرف الدرس: #${unit.id}',
+                                        style: TextStyle(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.45),
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (unit.isFreeSample) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green
+                                          .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'عينة مجانية',
+                                      style: TextStyle(
+                                        color: Colors.greenAccent,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                IconButton(
+                                  icon: const Icon(Icons.info_outline_rounded,
+                                      color: Colors.white70, size: 18),
+                                  tooltip: 'عرض تفاصيل ومحتوى الدرس الكامل',
+                                  onPressed: () {
+                                    UnitDetailsModal.show(
+                                      context,
+                                      unit: unit,
+                                      bookId: session.bookId,
+                                      onDownloadPdf: unit.hasPdfFile
+                                          ? () => _downloadOrStreamUnitPdfInReader(
+                                              context, unit, session)
+                                          : null,
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                            if (unit.hasDescription) ...[
+                              const SizedBox(height: 6),
+                              Padding(
+                                padding: const EdgeInsets.only(right: 36),
+                                child: Text(
+                                  unit.description!,
+                                  style: TextStyle(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.65),
+                                    fontSize: 11,
+                                    height: 1.4,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 36),
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  InkWell(
+                                    borderRadius: BorderRadius.circular(6),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      _resetZoom();
+                                      if (unit.order > 0) {
+                                        notifier.jumpToPage(unit.order);
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.2),
+                                        borderRadius:
+                                            BorderRadius.circular(6),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.auto_stories_rounded,
+                                              size: 13,
+                                              color: AppColors.primary),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'انتقال للدرس',
+                                            style: TextStyle(
+                                              color: AppColors.primary,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  if (unit.hasYoutube)
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(6),
+                                      onTap: () async {
+                                        final uri = Uri.tryParse(
+                                            unit.youtubeUrl!.trim());
+                                        if (uri != null &&
+                                            await canLaunchUrl(uri)) {
+                                          await launchUrl(uri,
+                                              mode: LaunchMode
+                                                  .externalApplication);
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red
+                                              .withValues(alpha: 0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                                Icons
+                                                    .play_circle_fill_rounded,
+                                                size: 13,
+                                                color: Colors.redAccent),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'فيديو يوتيوب',
+                                              style: TextStyle(
+                                                color: Colors.redAccent,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  if (unit.hasPdfFile)
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(6),
+                                      onTap: () =>
+                                          _downloadOrStreamUnitPdfInReader(
+                                              context, unit, session),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.deepOrange
+                                              .withValues(alpha: 0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                                Icons.download_rounded,
+                                                size: 13,
+                                                color:
+                                                    Colors.deepOrangeAccent),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'تحميل PDF${unit.fileSizeFormatted.isNotEmpty ? " (${unit.fileSizeFormatted})" : ""}',
+                                              style: const TextStyle(
+                                                color:
+                                                    Colors.deepOrangeAccent,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },

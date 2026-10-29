@@ -151,7 +151,10 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                 );
                 if (confirm == true && mounted) {
                   await ref.read(authProvider.notifier).logout();
-                  if (mounted) context.go('/login');
+                  if (!mounted) return;
+                  if (context.mounted) {
+                    context.go('/login');
+                  }
                 }
               }
             },

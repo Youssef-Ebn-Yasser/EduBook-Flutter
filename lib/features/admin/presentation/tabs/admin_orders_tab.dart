@@ -87,6 +87,7 @@ class _AdminOrdersTabState extends ConsumerState<AdminOrdersTab>
       return;
     }
 
+    final messenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
       builder: (_) => OrderReceiptDialog(
@@ -95,7 +96,7 @@ class _AdminOrdersTabState extends ConsumerState<AdminOrdersTab>
           final ok =
               await ref.read(adminOrdersProvider.notifier).approve(order.id);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(
                 content: Text(ok ? 'تم قبول الطلب وتفعيل الكتاب للطالب' : 'فشل قبول الطلب'),
                 backgroundColor: ok ? Colors.green : Colors.red,
@@ -113,7 +114,7 @@ class _AdminOrdersTabState extends ConsumerState<AdminOrdersTab>
                     .read(adminOrdersProvider.notifier)
                     .reject(order.id, reason);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text(ok ? 'تم رفض الطلب بنجاح' : 'فشل رفض الطلب'),
                       backgroundColor: ok ? Colors.orange : Colors.red,

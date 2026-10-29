@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../books/data/book_models.dart';
+import '../../../books/presentation/widgets/unit_details_modal.dart';
 import '../../data/admin_models.dart';
 import '../../data/admin_repository.dart';
 
@@ -573,6 +574,16 @@ class _BookUnitsDialogState extends ConsumerState<BookUnitsDialog> {
                                             ),
                                             const SizedBox(width: 8),
                                           ],
+                                          IconButton(
+                                            icon: const Icon(Icons.info_outline_rounded,
+                                                size: 18, color: Colors.teal),
+                                            tooltip: 'عرض تفاصيل ومحتوى الفصل الكامل',
+                                            onPressed: () => UnitDetailsModal.show(
+                                              context,
+                                              unit: unit,
+                                              bookId: widget.book.id,
+                                            ),
+                                          ),
                                           IconButton(
                                             icon: const Icon(Icons.edit_outlined,
                                                 size: 18, color: Colors.blue),
