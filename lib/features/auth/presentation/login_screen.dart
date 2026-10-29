@@ -66,7 +66,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     // Language switch
                     _TopBarButton(
@@ -75,39 +75,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onTap: () => ref
                           .read(localeNotifierProvider.notifier)
                           .toggleLanguage(),
-                    ),
-                    // Omani portal badge
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySurface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color:
-                                  AppColors.primary.withValues(alpha: 0.2)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.public_rounded,
-                                size: 14, color: AppColors.primary),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                l.tagline,
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w500),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                   ],
                 ),
