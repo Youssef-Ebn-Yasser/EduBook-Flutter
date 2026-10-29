@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/book_models.dart';
 import '../providers/books_provider.dart';
@@ -193,32 +194,219 @@ class BookDetailScreen extends ConsumerWidget {
 
                     // ── Chapters / Units ──────────────────────────────────
                     if (book.units.isNotEmpty) ...[
-                      Text(l.units,
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      ...book.units.map((unit) => ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: CircleAvatar(
-                              radius: 14,
-                              backgroundColor: theme.colorScheme.primary
-                                  .withValues(alpha: 0.12),
-                              child: Text(
-                                '${unit.order}',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: theme.colorScheme.primary,
-                                    fontWeight: FontWeight.bold),
+                      Row(
+                        children: [
+                          Text(
+                            l.units,
+                            style: theme.textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${book.units.length} فصول',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
                               ),
                             ),
-                            title: Text(unit.title,
-                                style: const TextStyle(fontSize: 14)),
-                            subtitle: unit.description != null
-                                ? Text(unit.description!,
-                                    style: const TextStyle(fontSize: 12))
-                                : null,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ...book.units.map((unit) => Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: theme.colorScheme.outlineVariant
+                                    .withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: theme.colorScheme.primary
+                                          .withValues(alpha: 0.15),
+                                      child: Text(
+                                        '${unit.order}',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        unit.title,
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    if (unit.isFreeSample) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green
+                                              .withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          'عينة مجانية',
+                                          style: TextStyle(
+                                            color: Colors.green.shade800,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                if (unit.description != null &&
+                                    unit.description!.trim().isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 38),
+                                    child: Text(
+                                      unit.description!,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (unit.hasYoutube || unit.hasPdfFile) ...[
+                                  const SizedBox(height: 10),
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 38),
+                                    child: Wrap(
+                                      spacing: 8,
+                                      runSpacing: 6,
+                                      children: [
+                                        if (unit.hasYoutube)
+                                          InkWell(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            onTap: () async {
+                                              final uri = Uri.tryParse(
+                                                  unit.youtubeUrl!.trim());
+                                              if (uri != null &&
+                                                  await canLaunchUrl(uri)) {
+                                                await launchUrl(uri,
+                                                    mode: LaunchMode
+                                                        .externalApplication);
+                                              }
+                                            },
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red
+                                                    .withValues(alpha: 0.08),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: Colors.red
+                                                      .withValues(alpha: 0.25),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.play_circle_fill_rounded,
+                                                    color: Colors.red,
+                                                    size: 16,
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    'شرح يوتيوب للدرس',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          Colors.red.shade700,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        if (unit.hasPdfFile)
+                                          Container(
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: theme.colorScheme.primary
+                                                  .withValues(alpha: 0.08),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: theme
+                                                    .colorScheme.primary
+                                                    .withValues(alpha: 0.2),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.picture_as_pdf_rounded,
+                                                  color:
+                                                      theme.colorScheme.primary,
+                                                  size: 15,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '${unit.pdfFileName ?? "ملف الدرس"}${unit.fileSizeFormatted.isNotEmpty ? " (${unit.fileSizeFormatted})" : ""}',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight:
+                                                        FontWeight.w500,
+                                                    color: theme
+                                                        .colorScheme.primary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           )),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                     ],
 
                     // ── Active file info ──────────────────────────────────

@@ -321,6 +321,39 @@ class AdminRepository {
     return ApiResponse<bool>(success: success, message: message, data: success);
   }
 
+  /// Upload or replace PDF file for a unit — multipart POST /api/Books/{id}/units/{unitId}/file
+  Future<ApiResponse<BookUnit>> uploadUnitPdfFile(
+      int bookId, int unitId, String filePath) async {
+    final fileName = filePath.split('/').last.split('\\').last;
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(filePath, filename: fileName),
+    });
+    final response = await _dio.post(
+      '/api/Books/$bookId/units/$unitId/file',
+      data: formData,
+    );
+    final raw = response.data as Map<String, dynamic>;
+    final data = (raw['data'] ?? raw) as Map<String, dynamic>;
+    return ApiResponse<BookUnit>(
+      success: raw['success'] as bool? ?? true,
+      message: raw['message'] as String? ?? 'تم رفع ملف الدرس بنجاح',
+      data: BookUnit.fromJson(data),
+    );
+  }
+
+  /// Delete PDF file attached to a unit — DELETE /api/Books/{id}/units/{unitId}/file
+  Future<ApiResponse<bool>> deleteUnitPdfFile(int bookId, int unitId) async {
+    final response = await _dio.delete('/api/Books/$bookId/units/$unitId/file');
+    final raw = response.data;
+    bool success = true;
+    String message = 'تم حذف ملف الدرس بنجاح';
+    if (raw is Map<String, dynamic>) {
+      success = raw['success'] as bool? ?? true;
+      message = raw['message'] as String? ?? message;
+    }
+    return ApiResponse<bool>(success: success, message: message, data: success);
+  }
+
   // ─── Book Files (PDF versions) ──────────────────────────────────────────────
 
   Future<ApiResponse<List<BookFile>>> getBookFiles(int bookId) async {

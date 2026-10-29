@@ -169,19 +169,26 @@ class UpdateBookRequest {
 class BookUnitRequest {
   final String title;
   final String? description;
+  final String? youtubeUrl;
   final int order;
+  final bool isFreeSample;
 
   const BookUnitRequest({
     required this.title,
     this.description,
+    this.youtubeUrl,
     required this.order,
+    this.isFreeSample = false,
   });
 
   Map<String, dynamic> toJson() => {
         'title': title,
         if (description != null && description!.isNotEmpty)
           'description': description,
+        if (youtubeUrl != null && youtubeUrl!.trim().isNotEmpty)
+          'youtubeUrl': youtubeUrl!.trim(),
         'order': order,
+        'isFreeSample': isFreeSample,
       };
 }
 

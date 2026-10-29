@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../books/data/book_models.dart';
 import '../../providers/admin_provider.dart';
 import '../widgets/book_form_dialog.dart';
+import '../widgets/book_units_dialog.dart';
 
 class AdminBooksTab extends ConsumerStatefulWidget {
   const AdminBooksTab({super.key});
@@ -316,6 +317,16 @@ class _AdminBooksTabState extends ConsumerState<AdminBooksTab> {
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
+                                          IconButton(
+                                            visualDensity: VisualDensity.compact,
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                            icon: const Icon(Icons.format_list_bulleted_rounded,
+                                                color: Colors.deepPurple, size: 20),
+                                            tooltip: 'إدارة الفصول والدروس وملفات PDF',
+                                            onPressed: () =>
+                                                BookUnitsDialog.show(context, book),
+                                          ),
                                           IconButton(
                                             visualDensity: VisualDensity.compact,
                                             padding: EdgeInsets.zero,

@@ -106,20 +106,53 @@ class BookUnit {
   final int id;
   final String title;
   final String? description;
+  final String? youtubeUrl;
+  final bool hasPdfFile;
+  final String? pdfFileName;
+  final int? pdfFileSizeBytes;
+  final DateTime? pdfUploadedAt;
+  final String? pdfStreamUrl;
   final int order;
+  final bool isFreeSample;
 
   const BookUnit({
     required this.id,
     required this.title,
     this.description,
+    this.youtubeUrl,
+    this.hasPdfFile = false,
+    this.pdfFileName,
+    this.pdfFileSizeBytes,
+    this.pdfUploadedAt,
+    this.pdfStreamUrl,
     required this.order,
+    this.isFreeSample = false,
   });
+
+  bool get hasYoutube => youtubeUrl != null && youtubeUrl!.trim().isNotEmpty;
+
+  String get fileSizeFormatted {
+    if (pdfFileSizeBytes == null || pdfFileSizeBytes! <= 0) return '';
+    final mb = pdfFileSizeBytes! / (1024 * 1024);
+    if (mb >= 1.0) return '${mb.toStringAsFixed(1)} ميجابايت';
+    final kb = pdfFileSizeBytes! / 1024;
+    return '${kb.toStringAsFixed(0)} كيلوبايت';
+  }
 
   factory BookUnit.fromJson(Map<String, dynamic> json) => BookUnit(
         id: (json['id'] as num?)?.toInt() ?? 0,
         title: json['title'] as String? ?? '',
         description: json['description'] as String?,
+        youtubeUrl: json['youtubeUrl'] as String?,
+        hasPdfFile: json['hasPdfFile'] as bool? ?? (json['pdfFileName'] != null),
+        pdfFileName: json['pdfFileName'] as String?,
+        pdfFileSizeBytes: (json['pdfFileSizeBytes'] as num?)?.toInt(),
+        pdfUploadedAt: json['pdfUploadedAt'] != null
+            ? DateTime.tryParse(json['pdfUploadedAt'].toString())
+            : null,
+        pdfStreamUrl: json['pdfStreamUrl'] as String?,
         order: (json['order'] as num?)?.toInt() ?? 0,
+        isFreeSample: json['isFreeSample'] as bool? ?? false,
       );
 }
 
