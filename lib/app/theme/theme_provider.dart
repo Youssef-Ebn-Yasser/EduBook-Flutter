@@ -216,7 +216,17 @@ class ThemeState {
         chipTheme: ChipThemeData(
           backgroundColor: AppColors.surfaceVariant,
           selectedColor: AppColors.primary,
-          labelStyle: const TextStyle(fontSize: 13),
+          labelStyle: const TextStyle(
+            fontSize: 13,
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+          secondaryLabelStyle: const TextStyle(
+            fontSize: 13,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+          checkmarkColor: Colors.white,
           side: const BorderSide(color: AppColors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),

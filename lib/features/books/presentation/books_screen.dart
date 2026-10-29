@@ -244,8 +244,16 @@ class _SortChip extends ConsumerWidget {
     final current = ref.watch(booksProvider).params.sortBy;
     final isSelected = current == value;
     return FilterChip(
-      label: Text(label, style: const TextStyle(fontSize: 12)),
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: isSelected ? Colors.white : Colors.black,
+        ),
+      ),
       selected: isSelected,
+      checkmarkColor: Colors.white,
       onSelected: (_) =>
           ref.read(booksProvider.notifier).updateFilters(sortBy: value),
     );
@@ -262,8 +270,16 @@ class _FilterChip2 extends ConsumerWidget {
     final current = ref.watch(booksProvider).params.sortBy;
     final isSelected = current == value;
     return FilterChip(
-      label: Text(label),
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: isSelected ? Colors.white : Colors.black,
+        ),
+      ),
       selected: isSelected,
+      checkmarkColor: Colors.white,
       onSelected: (_) =>
           ref.read(booksProvider.notifier).updateFilters(sortBy: value),
     );
