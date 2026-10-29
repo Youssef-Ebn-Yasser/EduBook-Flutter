@@ -257,7 +257,8 @@ class _UserCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final roleColor = user.role == 'Admin'
+    final isAdmin = user.role.toLowerCase() == 'admin';
+    final roleColor = isAdmin
         ? Colors.purple
         : (user.role == 'Teacher' ? Colors.blue : Colors.teal);
 
@@ -308,7 +309,7 @@ class _UserCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            user.role == 'Admin'
+                            isAdmin
                                 ? 'مشرف'
                                 : (user.role == 'Teacher' ? 'معلم' : 'طالب'),
                             style: TextStyle(
@@ -329,57 +330,60 @@ class _UserCard extends StatelessWidget {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.menu_book_rounded,
-                                size: 13, color: theme.colorScheme.primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${user.purchasedBooksCount} كتب',
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.payments_outlined,
-                                size: 13, color: Colors.green.shade700),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${user.totalSpent.toStringAsFixed(3)} ر.ع.',
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    if (!isAdmin) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.menu_book_rounded,
+                                  size: 13, color: theme.colorScheme.primary),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${user.purchasedBooksCount} كتب',
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.payments_outlined,
+                                  size: 13, color: Colors.green.shade700),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${user.totalSpent.toStringAsFixed(3)} ر.ع.',
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
-              Column(
-                children: [
-                  Switch(
-                    value: user.isActive,
-                    onChanged: onToggleStatus,
-                  ),
-                  Text(
-                    user.isActive ? 'نشط' : 'معطل',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: user.isActive ? Colors.green : Colors.red,
+              if (!isAdmin)
+                Column(
+                  children: [
+                    Switch(
+                      value: user.isActive,
+                      onChanged: onToggleStatus,
                     ),
-                  ),
-                ],
-              ),
+                    Text(
+                      user.isActive ? 'نشط' : 'معطل',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: user.isActive ? Colors.green : Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
