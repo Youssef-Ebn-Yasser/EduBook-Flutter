@@ -202,6 +202,19 @@ enum AdminOrderStatus {
       orElse: () => AdminOrderStatus.pendingVerification,
     );
   }
+
+  static AdminOrderStatus fromString(String s) {
+    switch (s.toLowerCase()) {
+      case 'approved':
+        return AdminOrderStatus.approved;
+      case 'rejected':
+        return AdminOrderStatus.rejected;
+      case 'cancelled':
+        return AdminOrderStatus.cancelled;
+      default:
+        return AdminOrderStatus.pendingVerification;
+    }
+  }
 }
 
 class AdminOrder {
@@ -246,16 +259,34 @@ class AdminOrder {
   });
 
   factory AdminOrder.fromJson(Map<String, dynamic> json) {
-    final statusInt = json['status'] as int? ?? 0;
+    final rawStatus = json['status'];
+    final AdminOrderStatus status;
+    if (rawStatus is int) {
+      status = AdminOrderStatus.fromInt(rawStatus);
+    } else if (rawStatus is String) {
+      status = AdminOrderStatus.fromString(rawStatus);
+    } else {
+      status = AdminOrderStatus.pendingVerification;
+    }
+
+    final id = (json['id'] as num?)?.toInt() ??
+        (json['orderId'] as num?)?.toInt() ??
+        0;
+
     return AdminOrder(
-      id: json['id'] as int,
-      bookId: json['bookId'] as int? ?? 0,
+      id: id,
+      bookId: (json['bookId'] as num?)?.toInt() ?? 0,
       bookTitle: json['bookTitle'] as String? ?? '',
       bookCoverUrl: json['bookCoverUrl'] as String?,
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency'] as String? ?? 'OMR',
-      status: AdminOrderStatus.fromInt(statusInt),
-      statusText: json['statusText'] as String? ?? '',
+      status: status,
+      statusText: json['statusText'] as String? ??
+          (status == AdminOrderStatus.approved
+              ? 'مقبول ومفعل'
+              : (status == AdminOrderStatus.rejected
+                  ? 'مرفوض'
+                  : 'معلق')),
       receiptUrl: json['receiptUrl'] as String? ?? '',
       bankReferenceNumber: json['bankReferenceNumber'] as String?,
       studentNotes: json['studentNotes'] as String?,
@@ -398,21 +429,33 @@ class AdminDashboardStats {
     final rawGrades = (json['salesByGrade'] as List<dynamic>?) ?? [];
 
     return AdminDashboardStats(
-      totalUsers: json['totalUsers'] as int? ?? 0,
-      totalStudents: json['totalStudents'] as int? ?? 0,
-      totalTeachers: json['totalTeachers'] as int? ?? 0,
-      totalBooks: json['totalBooks'] as int? ?? 0,
-      totalActiveBooks: json['totalActiveBooks'] as int? ?? 0,
-      totalOrders: json['totalOrders'] as int? ?? 0,
-      approvedOrders: json['approvedOrders'] as int? ?? 0,
-      pendingVerificationOrders: json['pendingVerificationOrders'] as int? ?? 0,
-      rejectedOrders: json['rejectedOrders'] as int? ?? 0,
+      totalUsers: (json['totalUsers'] as num?)?.toInt() ?? 0,
+      totalStudents: (json['totalStudents'] as num?)?.toInt() ?? 0,
+      totalTeachers: (json['totalTeachers'] as num?)?.toInt() ?? 0,
+      totalBooks: (json['totalBooks'] as num?)?.toInt() ?? 0,
+      totalActiveBooks: (json['totalActiveBooks'] as num?)?.toInt() ?? 0,
+      totalOrders: (json['totalOrders'] as num?)?.toInt() ?? 0,
+      approvedOrders: (json['approvedOrders'] as num?)?.toInt() ?? 0,
+      pendingVerificationOrders: (json['pendingVerificationOrders'] as num?)?.toInt() ?? 0,
+      rejectedOrders: (json['rejectedOrders'] as num?)?.toInt() ?? 0,
       totalRevenue: (json['totalRevenue'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency'] as String? ?? 'OMR',
-      topSellingBooks: rawTopBooks.map((e) => TopSellingBook.fromJson(e as Map<String, dynamic>)).toList(),
-      recentOrders: rawRecent.map((e) => AdminOrder.fromJson(e as Map<String, dynamic>)).toList(),
-      monthlySales: rawMonthly.map((e) => MonthlySales.fromJson(e as Map<String, dynamic>)).toList(),
-      salesByGrade: rawGrades.map((e) => SalesByGrade.fromJson(e as Map<String, dynamic>)).toList(),
+      topSellingBooks: rawTopBooks
+          .whereType<Map>()
+          .map((e) => TopSellingBook.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      recentOrders: rawRecent
+          .whereType<Map>()
+          .map((e) => AdminOrder.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      monthlySales: rawMonthly
+          .whereType<Map>()
+          .map((e) => MonthlySales.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      salesByGrade: rawGrades
+          .whereType<Map>()
+          .map((e) => SalesByGrade.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
     );
   }
 }

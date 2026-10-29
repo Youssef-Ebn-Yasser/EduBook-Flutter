@@ -496,8 +496,12 @@ class AdminRepository {
 
   Future<ApiResponse<AdminDashboardStats>> getDashboardStats() async {
     final response = await _dio.get('/api/admin/dashboard');
-    final raw = response.data as Map<String, dynamic>;
-    final data = (raw['data'] ?? raw) as Map<String, dynamic>;
+    final raw = response.data is Map
+        ? Map<String, dynamic>.from(response.data as Map)
+        : <String, dynamic>{};
+    final data = raw['data'] is Map
+        ? Map<String, dynamic>.from(raw['data'] as Map)
+        : raw;
     return ApiResponse<AdminDashboardStats>(
       success: raw['success'] as bool? ?? true,
       message: raw['message'] as String? ?? '',

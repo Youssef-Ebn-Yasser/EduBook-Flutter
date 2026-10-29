@@ -18,7 +18,10 @@ class AdminDashboardTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colors = context.appColors;
-    final dashboardStats = ref.watch(adminDashboardStatsProvider).stats;
+    final dashboardStatsState = ref.watch(adminDashboardStatsProvider);
+    final dashboardStats = dashboardStatsState.stats;
+    final isLoadingStats = dashboardStatsState.isLoading;
+    final statsError = dashboardStatsState.error;
     final books = ref.watch(adminBooksProvider).books;
     final ordersState = ref.watch(adminOrdersProvider);
 
@@ -108,6 +111,39 @@ class AdminDashboardTab extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
 
+            if (isLoadingStats && dashboardStats == null)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: LinearProgressIndicator(),
+              ),
+
+            if (statsError != null && dashboardStats == null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        statsError,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => ref.read(adminDashboardStatsProvider.notifier).load(),
+                      child: const Text('إعادة المحاولة'),
+                    ),
+                  ],
+                ),
+              ),
+
             // ── Stat Cards ──────────────────────────────────────────────────
             Row(
               children: [
@@ -129,7 +165,7 @@ class AdminDashboardTab extends ConsumerWidget {
                     value: (dashboardStats?.pendingVerificationOrders ?? pendingOrders.length).toString(),
                     icon: Icons.hourglass_top_rounded,
                     color: Colors.orange,
-                    isAlert: pendingOrders.isNotEmpty,
+                    isAlert: (dashboardStats?.pendingVerificationOrders ?? pendingOrders.length) > 0,
                     onTap: () => onNavigateTab(1), // Orders tab
                   ),
                 ),
@@ -157,6 +193,32 @@ class AdminDashboardTab extends ConsumerWidget {
                     icon: Icons.menu_book_rounded,
                     color: Colors.blue,
                     onTap: () => onNavigateTab(2), // Books tab
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _statCard(
+                    context,
+                    title: 'الطلبات المقبولة',
+                    value: (dashboardStats?.approvedOrders ?? 0).toString(),
+                    icon: Icons.check_circle_rounded,
+                    color: Colors.purple,
+                    onTap: () => onNavigateTab(1), // Orders tab
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _statCard(
+                    context,
+                    title: 'إجمالي المعلمين',
+                    value: (dashboardStats?.totalTeachers ?? 0).toString(),
+                    icon: Icons.school_rounded,
+                    color: Colors.indigo,
+                    onTap: () => onNavigateTab(5), // Users tab
                   ),
                 ),
               ],
@@ -238,6 +300,7 @@ class AdminDashboardTab extends ConsumerWidget {
                     icon: Icons.refresh_rounded,
                     onTap: () async {
                       await Future.wait([
+                        ref.read(adminDashboardStatsProvider.notifier).load(),
                         ref.read(adminCategoriesProvider.notifier).load(),
                         ref.read(adminGradeLevelsProvider.notifier).load(),
                         ref.read(adminBooksProvider.notifier).load(),
@@ -257,6 +320,149 @@ class AdminDashboardTab extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
+
+            // ── Top Selling Books Section (from api/admin/dashboard) ─────────
+            if (dashboardStats != null && dashboardStats.topSellingBooks.isNotEmpty) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'الكتب الأكثر مبيعاً 🔥',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => onNavigateTab(2),
+                    child: const Text('عرض كل الكتب'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ...dashboardStats.topSellingBooks.take(4).map((book) {
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: book.coverUrl != null && book.coverUrl!.isNotEmpty
+                          ? Image.network(
+                              book.coverUrl!,
+                              width: 44,
+                              height: 58,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 44,
+                                height: 58,
+                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                child: const Icon(Icons.menu_book, size: 22),
+                              ),
+                            )
+                          : Container(
+                              width: 44,
+                              height: 58,
+                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              child: const Icon(Icons.menu_book, size: 22),
+                            ),
+                    ),
+                    title: Text(
+                      book.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      '${book.gradeLevelName} • ${book.categoryName}',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                    ),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${book.salesCount} مبيعات',
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          '${book.totalRevenue.toStringAsFixed(3)} ر.ع.',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 16),
+            ],
+
+            // ── Sales By Grade Level (from api/admin/dashboard) ──────────────
+            if (dashboardStats != null && dashboardStats.salesByGrade.isNotEmpty) ...[
+              Text(
+                'توزيع المبيعات حسب الصف الدراسي 📊',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: colors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: dashboardStats.salesByGrade.map((grade) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  grade.gradeLevelName,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                Text(
+                                  '${grade.ordersCount} طلبات • ${grade.totalRevenue.toStringAsFixed(3)} ر.ع. (${grade.percentage.toStringAsFixed(1)}%)',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: LinearProgressIndicator(
+                                value: (grade.percentage / 100).clamp(0.0, 1.0),
+                                minHeight: 7,
+                                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // ── Urgent Pending Orders Section ────────────────────────────────
             Row(
